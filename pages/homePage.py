@@ -15,5 +15,5 @@ class HomePage(BasePage):
         self.page.close()  # Closing the browser page
 
     async def testLLM(self):
-        sampleFinal = createSampleDataSet("This is Java", "This is Python")
+        sampleFinal = createSampleDataSet("This is Java", "This is Java")
         score = await fetch_score_with_retry(sampleFinal)
