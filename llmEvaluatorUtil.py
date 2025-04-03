@@ -15,24 +15,19 @@ if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Please set it in your environment.")
 
 # Configure Gemini API
+print(GEMINI_API_KEY)
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Set up Gemini LLM using LangChain wrapper
 llm = GoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
 
-# # Create a sample response and reference
-# sample = SingleTurnSample(
-#     response="The Eiffel Tower is located in Paris.",
-#     reference="Java is best"
-# )
 
-
-def createSampleDataSet(res, ref):
-    sample = SingleTurnSample(
-        response=res,
-        reference=ref
-    )
-    return sample
+# def createSampleDataSet(res, ref):
+#     sample = SingleTurnSample(
+#         response=res,
+#         reference=ref
+#     )
+#     return sample
 
 # sampleFinal= createSampleDataSet("This is Java", "This is Java")
 
@@ -61,9 +56,14 @@ async def fetch_score_with_retry(sample):
                 raise e  # Raise the last error after exceeding retries
 
 
-# # Run async function with retry
-# async def main():
-#     await fetch_score_with_retry()
-#
-#
-# asyncio.run(main())  # Ensure async execution
+# Run async function with retry
+async def main():
+    # Create a sample response and reference
+    sample = SingleTurnSample(
+    response="The Eiffel Tower is located in Paris.",
+    reference="Java is best"
+    )
+    await fetch_score_with_retry(sample)
+
+
+asyncio.run(main())  # Ensure async execution
