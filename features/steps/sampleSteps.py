@@ -21,7 +21,7 @@ async def verify_homepage_title(context):
 async def step_impl(context):
      # Load and concatenate context PDFs
     question= "Can lambdas return a value ?"
-    answer="Yes, lambdas return a value";
+    answer="Yes, lambdas can return a value. The type of the return value will be inferred by the compiler. The return statement is not required if the lambda body is just a one-liner"
     reference="Lambdas may return a value. The type of the return value will be inferred by compiler. The return statement is not required if the lambda body is just a one-liner. "
     context1 = read_pdf("context_files/Java_8.pdf")
     # context2 = read_pdf("context_files/javanotes8.pdf")

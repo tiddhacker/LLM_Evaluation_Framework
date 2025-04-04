@@ -73,7 +73,6 @@ class HomePage(BasePage):
         start_time = time.time()
         result_set = evaluate_dataset(data_samples)
         elapsed = time.time() - start_time
-
         print(f"\nEvaluation completed in {elapsed:.2f} seconds")
 
         # Step 5: Generate full report
