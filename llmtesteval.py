@@ -93,6 +93,12 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
     dataset = Dataset.from_dict(data_samples)
 
     for i in range(len(dataset)):
+        print(f"\n--- Evaluating Merged Chunk #{i+1} ---")
+        # print(f"Question: {dataset[i]['question']}")
+        # print(f"Answer: {dataset[i]['answer']}")
+        # print(f"Reference: {dataset[i]['reference']}")
+        # print(f"Context (First 300 chars): {dataset[i]['contexts'][0][:300]}...\n")
+
         result = evaluate_with_retries(i, dataset)
         if result is not None:
             result_set.append(result)
@@ -104,8 +110,10 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
         results_df = pd.concat(result_set)
         if "retrieved_contexts" in results_df.columns:
             results_df = results_df.drop(columns=["retrieved_contexts"])
-        print("\nEvaluation Results:\n")
-        print(results_df.to_markdown(index=False))
+
+        # To print result in terminal:
+        # print("\nEvaluation Results:\n")
+        # print(results_df.to_markdown(index=False))
     else:
         print("No successful evaluations.")
 
@@ -121,7 +129,8 @@ def generateEvaluationReport(report_name, result_set):
     if "retrieved_contexts" in results_df.columns:
         results_df = results_df.drop(columns=["retrieved_contexts"])
 
-    report_filename = f"{report_name}.html"
+    # === HTML Report ===
+    report_filename_html = f"{report_name}.html"
     html_report = results_df.to_html(classes="table table-striped", index=False)
     html_template = f"""
     <!DOCTYPE html>
@@ -139,7 +148,11 @@ def generateEvaluationReport(report_name, result_set):
     </body>
     </html>
     """
-    with open(report_filename, "w", encoding="utf-8") as file:
+    with open(report_filename_html, "w", encoding="utf-8") as file:
         file.write(html_template)
+    print(f"✅ HTML report generated: '{report_filename_html}'")
 
-    print(f"\nEvaluation report generated: '{report_filename}'")
+    # === Excel Report ===
+    report_filename_xlsx = f"{report_name}.xlsx"
+    results_df.to_excel(report_filename_xlsx, index=False)
+    print(f"✅ Excel report generated: '{report_filename_xlsx}'")
