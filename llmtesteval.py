@@ -119,18 +119,6 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
 
     return result_set
 
-# Report generator
-def generateEvaluationReport(report_name, result_set):
-    if not result_set:
-        print("No data to generate report.")
-        return
-
-    results_df = pd.concat(result_set)
-    if "retrieved_contexts" in results_df.columns:
-        results_df = results_df.drop(columns=["retrieved_contexts"])
-
-
-
     # === HTML Report ===
     
 def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame]):
