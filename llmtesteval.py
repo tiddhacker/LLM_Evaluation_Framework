@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 from deepeval.dataset import EvaluationDataset
 from deepeval.metrics import AnswerRelevancyMetric
 from deepeval.models.base_model import DeepEvalBaseLLM
-from deepeval import evaluate
+from deepeval import evaluate as deepeval_evaluate
 from langchain_google_vertexai import VertexAI, VertexAIEmbeddings
-from datasets import Dataset 
+from datasets import Dataset
 from ragas import evaluate
 from ragas.llms.base import LangchainLLMWrapper
 from ragas.metrics import answer_relevancy, context_precision, context_recall, answer_similarity
@@ -34,50 +34,44 @@ creds, project_id = google.auth.default()
 ragas_vertexai_llm = VertexAI(model_name="gemini-pro", credentials=creds, request_timeout=600)
 wrapper = LangchainLLMWrapper(ragas_vertexai_llm)
 
-# Increase gRPC timeout
-grpc_options = [("grpc.max_receive_message_length", 256 * 1024 * 1024),  # 256MB
-                ("grpc.max_send_message_length", 256 * 1024 * 1024),
-                ("grpc.keepalive_timeout_ms", 600000)]  # 10 min timeout
+# gRPC settings
+grpc_options = [
+    ("grpc.max_receive_message_length", 256 * 1024 * 1024),
+    ("grpc.max_send_message_length", 256 * 1024 * 1024),
+    ("grpc.keepalive_timeout_ms", 600000)
+]
 
 def create_secure_channel():
     return grpc.insecure_channel("vertexai.googleapis.com", options=grpc_options)
 
-# Use custom RAGAS-compatible Vertex AI Embeddings
+# Custom embeddings class
 class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
     async def embed_text(self, text: str) -> list[float]:
         return self.embed([text], 1, "SEMANTIC_SIMILARITY")[0]
-    
+
     def set_run_config(self, *args, **kwargs):
-        pass  # Dummy method to prevent errors
+        pass
 
 embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
 
-# Initialize RAGAS Metrics
-metrics = [
-    answer_relevancy,
-    context_recall,
-    context_precision,
-    answer_similarity,
-]
-
+# Attach LLM and embeddings to metrics
+metrics = [answer_relevancy, context_recall, context_precision, answer_similarity]
 for m in metrics:
-    m.__setattr__("llm", wrapper)
+    m.llm = wrapper
     if hasattr(m, "embeddings"):
-        m.__setattr__("embeddings", embeddings)
+        m.embeddings = embeddings
 
-# Reset sys.excepthook to prevent issues
+# Reset excepthook
 sys.excepthook = sys.__excepthook__
 
-# Function to handle retries
+# Retry wrapper
 def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
     retries = 0
     while retries < max_retries:
         try:
-            # Select the data entry from the dataset by index
-            selected_data = dataset.select([index])  # Passing index as a list to select a single entry
-            # Perform evaluation on the selected data
+            selected_data = dataset.select([index])
             result = evaluate(
-                selected_data,  # Pass the selected Dataset entry
+                selected_data,
                 metrics=metrics,
                 llm=wrapper,
                 embeddings=embeddings
@@ -85,75 +79,67 @@ def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
             return result
         except grpc.RpcError as e:
             print(f"gRPC Error: {e}. Retrying {retries+1}/{max_retries}...")
-            time.sleep(delay * (2 ** retries))  # Exponential backoff
+            time.sleep(delay * (2 ** retries))
             retries += 1
         except Exception as e:
             print(f"Unexpected Error: {e}")
-            sys.exit(1)  # Exit safely to prevent excepthook issues
+            sys.exit(1)
     print("Evaluation failed after retries.")
     return None
 
-
-
-# Run evaluation sequentially to prevent quota errors
+# Dataset evaluator
 def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
-    """
-    Evaluates the dataset by calling `evaluate_with_retries` for each entry.
-
-    Args:
-        dataset (Dataset): The dataset to evaluate.
-
-    Returns:
-        List[pd.DataFrame]: A list of DataFrames containing evaluation results.
-    """
     result_set = []
     dataset = Dataset.from_dict(data_samples)
 
-    # Evaluate each entry in the dataset
     for i in range(len(dataset)):
-        result = evaluate_with_retries(i,dataset)  # Reusing the evaluate_with_retries function
+        result = evaluate_with_retries(i, dataset)
         if result is not None:
             result_set.append(result)
-    
-    # Close gRPC channel after evaluation
+
     channel = create_secure_channel()
     channel.close()
 
-    # View results in a readable tabular format
     if result_set:
         results_df = pd.concat(result_set)
+        if "retrieved_contexts" in results_df.columns:
+            results_df = results_df.drop(columns=["retrieved_contexts"])
         print("\nEvaluation Results:\n")
         print(results_df.to_markdown(index=False))
     else:
         print("No successful evaluations.")
 
     return result_set
-    
-    
-# Generate HTML report dynamically based on user input
-def generateEvaluationReport(report_name,result_set):
-    # report_name = input("Enter the report filename (without extension): ")
-        results_df = pd.concat(result_set)
-        report_filename = f"{report_name}.html"
-        
-        html_report = results_df.to_html(classes="table table-striped", index=False)
-        html_template = f"""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Evaluation Report</title>
-            <link rel="stylesheet" 
-                href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-        </head>
-        <body class="container">
-            <h2 class="mt-4 mb-4">Evaluation Results</h2>
-            {html_report}
-        </body>
-        </html>
-        """
 
-        with open(report_filename, "w", encoding="utf-8") as file:
-            file.write(html_template)
-        print(f"\nEvaluation report generated: '{report_filename}'")
+# Report generator
+def generateEvaluationReport(report_name, result_set):
+    if not result_set:
+        print("No data to generate report.")
+        return
+
+    results_df = pd.concat(result_set)
+    if "retrieved_contexts" in results_df.columns:
+        results_df = results_df.drop(columns=["retrieved_contexts"])
+
+    report_filename = f"{report_name}.html"
+    html_report = results_df.to_html(classes="table table-striped", index=False)
+    html_template = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Evaluation Report</title>
+        <link rel="stylesheet" 
+              href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    </head>
+    <body class="container">
+        <h2 class="mt-4 mb-4">Evaluation Results</h2>
+        {html_report}
+    </body>
+    </html>
+    """
+    with open(report_filename, "w", encoding="utf-8") as file:
+        file.write(html_template)
+
+    print(f"\nEvaluation report generated: '{report_filename}'")
