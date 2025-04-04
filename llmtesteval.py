@@ -134,6 +134,19 @@ def generateEvaluationReport(report_name, result_set):
     # === HTML Report ===
     
 def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame]):
+    """
+    Generates and saves evaluation reports in both HTML and Excel formats under the "reports" directory.
+
+    Args:
+        report_name (str): The name of the report (used for file naming).
+        result_set (t.List[pd.DataFrame]): A list of Pandas DataFrames containing the evaluation results.
+    """
+
+    # Create the 'reports' directory if it doesn't exist
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        os.makedirs(reports_dir)
+
     if not result_set:
         print("No data to generate report.")
         return
@@ -142,8 +155,8 @@ def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame])
     if "retrieved_contexts" in results_df.columns:
         results_df = results_df.drop(columns=["retrieved_contexts"])
 
-    report_filename_html = f"{report_name}.html"
-    report_filename_xlsx = f"{report_name}.xlsx"
+    report_filename_html = os.path.join(reports_dir, f"{report_name}.html")
+    report_filename_xlsx = os.path.join(reports_dir, f"{report_name}.xlsx")
 
     # HTML table (no style, just raw table to apply DataTables enhancements)
     html_table = results_df.to_html(index=False, table_id="resultsTable", border=0)
@@ -196,13 +209,10 @@ def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame])
     <body class="container">
         <h2>Evaluation Results</h2>
 
-        <!-- Chart -->
         <canvas id="summaryChart" height="100"></canvas>
 
-        <!-- Data Table -->
         {html_table}
 
-        <!-- JS Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -256,7 +266,7 @@ def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame])
     </body>
     </html>
     """
- # Save HTML
+    # Save HTML
     with open(report_filename_html, "w", encoding="utf-8") as file:
         file.write(html_template)
     print(f"✅ HTML report generated: '{report_filename_html}'")
