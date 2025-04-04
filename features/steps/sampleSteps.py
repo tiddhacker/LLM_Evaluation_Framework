@@ -20,10 +20,10 @@ async def verify_homepage_title(context):
 @async_run_until_complete
 async def step_impl(context):
      # Load and concatenate context PDFs
-    question= "Does Java Support Multiple Inheritance ?";
-    answer="No, Java does not support multiple inheritance with classes. This means that a class cannot inherit from more than one class directly.";
-    reference="No, Java does not support multiple inheritance";
+    question= "Can lambdas return a value ?"
+    answer="Yes, lambdas return a value";
+    reference="Lambdas may return a value. The type of the return value will be inferred by compiler. The return statement is not required if the lambda body is just a one-liner. "
     context1 = read_pdf("context_files/Java_8.pdf")
-    context2 = read_pdf("context_files/javanotes8.pdf")
-    full_context = context1 + context2
+    # context2 = read_pdf("context_files/javanotes8.pdf")
+    full_context = context1
     await context.page.testLLM(full_context,question,answer,reference)
