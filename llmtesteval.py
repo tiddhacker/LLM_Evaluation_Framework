@@ -1,12 +1,7 @@
 import os
 import time
 import vertexai
-from vertexai.language_models import TextGenerationModel
 from dotenv import load_dotenv
-from deepeval.dataset import EvaluationDataset
-from deepeval.metrics import AnswerRelevancyMetric
-from deepeval.models.base_model import DeepEvalBaseLLM
-from deepeval import evaluate as deepeval_evaluate
 from langchain_google_vertexai import VertexAI, VertexAIEmbeddings
 from datasets import Dataset
 from ragas import evaluate
@@ -31,7 +26,7 @@ vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 # Load Gemini model via Vertex AI
 creds, project_id = google.auth.default()
-ragas_vertexai_llm = VertexAI(model_name="gemini-pro", credentials=creds, request_timeout=600)
+ragas_vertexai_llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds, request_timeout=600)
 wrapper = LangchainLLMWrapper(ragas_vertexai_llm)
 
 # gRPC settings
@@ -88,7 +83,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
     return None
 
 
-def chunk_text(text, chunk_size=1000, overlap=200):
+def chunk_text(text, chunk_size, overlap):
     words = text.split()
     chunks = []
     for i in range(0, len(words), chunk_size - overlap):
@@ -96,7 +91,7 @@ def chunk_text(text, chunk_size=1000, overlap=200):
         chunks.append(chunk)
     return chunks
 
-def merge_chunks_in_batches(chunks, max_char_len=25000):
+def merge_chunks_in_batches(chunks, max_char_len):
     merged_batches = []
     current_batch = ""
     current_len = 0
