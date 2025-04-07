@@ -1,6 +1,4 @@
 from playwright.sync_api import sync_playwright
-from pages.basePage import BasePage  # Import the BasePage class
-
 
 def before_scenario(context, scenario):
     """Set up Playwright browser before each scenario."""
