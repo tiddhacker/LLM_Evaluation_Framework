@@ -21,6 +21,11 @@ LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION")
 if not PROJECT_ID or not LOCATION:
     raise ValueError("Google Cloud PROJECT_ID and LOCATION must be set in environment variables.")
 
+#suppress error
+def silent_excepthook(exc_type, exc_value, exc_traceback):
+    print(f"Unhandled exception: {exc_value}")
+sys.excepthook = silent_excepthook
+
 # Initialize Vertex AI
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
@@ -35,9 +40,6 @@ grpc_options = [
     ("grpc.max_send_message_length", 256 * 1024 * 1024),
     ("grpc.keepalive_timeout_ms", 600000)
 ]
-
-def create_secure_channel():
-    return grpc.insecure_channel("vertexai.googleapis.com", options=grpc_options)
 
 # Custom embeddings class
 class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
@@ -56,8 +58,6 @@ for m in metrics:
     if hasattr(m, "embeddings"):
         m.embeddings = embeddings
 
-# Reset excepthook
-sys.excepthook = sys.__excepthook__
 
 # Retry wrapper
 def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
@@ -134,7 +134,7 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
     dataset = Dataset.from_dict(data_samples)
 
     for i in range(len(dataset)):
-        print(f"\n--- Evaluating Merged Chunk #{i+1} ---")
+        print(f"\n--- Evaluating Merged Chunk #{i + 1}/{len(dataset)} ---")
         # print(f"Question: {dataset[i]['question']}")
         # print(f"Answer: {dataset[i]['answer']}")
         # print(f"Reference: {dataset[i]['reference']}")
@@ -143,9 +143,6 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
         result = evaluate_with_retries(i, dataset)
         if result is not None:
             result_set.append(result)
-
-    channel = create_secure_channel()
-    channel.close()
 
     if result_set:
         results_df = pd.concat(result_set)
