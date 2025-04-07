@@ -6,7 +6,7 @@ from langchain_google_vertexai import VertexAI, VertexAIEmbeddings
 from datasets import Dataset
 from ragas import evaluate
 from ragas.llms.base import LangchainLLMWrapper
-from ragas.metrics import answer_relevancy, context_precision, context_recall, answer_similarity
+from ragas.metrics import answer_relevancy, context_precision, context_recall, answer_similarity, faithfulness, answer_correctness
 import pandas as pd
 import google.auth
 import grpc
@@ -21,7 +21,7 @@ LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION")
 if not PROJECT_ID or not LOCATION:
     raise ValueError("Google Cloud PROJECT_ID and LOCATION must be set in environment variables.")
 
-#suppress error
+#suppress unhandled exceptions
 def silent_excepthook(exc_type, exc_value, exc_traceback):
     print(f"Unhandled exception: {exc_value}")
 sys.excepthook = silent_excepthook
@@ -52,7 +52,7 @@ class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
 embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
 
 # Attach LLM and embeddings to metrics
-metrics = [answer_relevancy, context_recall, context_precision, answer_similarity]
+metrics = [answer_relevancy, context_recall, context_precision, answer_similarity, faithfulness, answer_correctness]
 for m in metrics:
     m.llm = wrapper
     if hasattr(m, "embeddings"):

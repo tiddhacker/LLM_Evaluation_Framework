@@ -6,21 +6,15 @@
 
 
 ====
-Key Metrics in ragas:
-----------------------
 
-Factual Correctness – Ensures the generated response is factually correct.
-
-Context Relevance – Measures how relevant the retrieved context is to the query.
-
-Answer Relevance – Evaluates if the generated answer is relevant to the query.
-
-Faithfulness – Checks if the answer is fully supported by the retrieved context.
-
-Context Precision – Ensures the retrieved documents do not contain unnecessary information.
-
-Answer Correctness – Evaluates correctness using a reference answer.
-
+Metric	Description
+====================
+answer_relevancy:	How well the answer addresses the question.
+answer_similarity:	Similarity between generated and reference answer.
+context_precision:	Proportion of retrieved context that is relevant.
+context_recall: 	Proportion of relevant context that was retrieved.
+faithfulness:		How factually consistent the answer is with the retrieved context.
+answer_correctness:	Checks if the answer is semantically correct compared to the reference.
 
 ====
 In chatGPT search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS step by step"

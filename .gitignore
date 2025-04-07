@@ -2,10 +2,11 @@
 __pycache__/
 *.py[cod]
 **/__pycache__/*.pyc
-pages/__pycache__
+pages/__pycache__/*
 # C extensions
 *.so
 /reports
+.idea/
 
 # Distribution / packaging
 bin/
