@@ -5,6 +5,7 @@ from util.reportGen import *
 import time
 
 class HomePage(BasePage):
+
     def __init__(self, page):
         super().__init__(page)
 
