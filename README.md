@@ -1,6 +1,7 @@
 #Run the scripts using-
 1. Install VS Code (It supports mapping of feature vs step def, which pycharm won't support in community edition)
 2. Install cucumber, python extension in vs code
+3. Set path for GOOGLE_APPLICATION_CREDENTIALS (Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS)
 3. Open terminal
 4. Run behave --tags=smoke
 
@@ -17,7 +18,9 @@ faithfulness:		How factually consistent the answer is with the retrieved context
 answer_correctness:	Checks if the answer is semantically correct compared to the reference.
 
 ====
-In chatGPT search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS step by step"
+
+
+Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS step by step"
 
 Reference:
  ==========
