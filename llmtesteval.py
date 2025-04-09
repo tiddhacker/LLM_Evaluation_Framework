@@ -110,6 +110,7 @@ def merge_chunks_in_batches(chunks, max_char_len):
 
     return merged_batches
 
+#used for creating sample data. modify as per need
 def createDataSet(merged_batches,question, answer, reference):
     data_samples = {
         'question': [],
