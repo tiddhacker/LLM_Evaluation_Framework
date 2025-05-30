@@ -31,7 +31,7 @@ vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 # Load Gemini model via Vertex AI
 creds, project_id = google.auth.default()
-ragas_vertexai_llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds, request_timeout=600)
+ragas_vertexai_llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
 wrapper = LangchainLLMWrapper(ragas_vertexai_llm)
 
 # gRPC settings
