@@ -1,27 +1,23 @@
-from behave import *
+from behave import given, then
 from behave.api.async_step import async_run_until_complete
 from pages.homePage import HomePage
-from util.commonUtil import *
+from util.commonUtil import read_pdf
 
 @given("I open the homepage")
 @async_run_until_complete
 async def open_homepage(context):
-    context.page = HomePage(context.page)
-    context.page.goToPage()
+    context.page = await HomePage.create(context.page)
+    await context.page.goToPage()
 
 @then("I should see the homepage title")
 @async_run_until_complete
 async def verify_homepage_title(context):
-    print(context.page.get_homepage_title())
+    title = await context.page.get_homepage_title()
+    print(f"Title: {title}")
+    assert title and len(title) > 0
 
-@then('I evaulate response for "{question}" "{answer}" "{reference}" "{context_reference}"')
+@then('I evaluate the LLM response for "{question}" "{answer}" "{reference}" "{context_reference}"')
 @async_run_until_complete
-async def step_impl(context, question,answer,reference,context_reference):
-    # Load and concatenate context PDFs
-    ques= question
-    ans=answer
-    ref=reference
-    context1 = read_pdf(context_reference)
-    # context2 = read_pdf("context_files/javanotes8.pdf")
-    full_context = context1
-    await context.page.testLLM(full_context,ques,ans,ref)
+async def evaluate_llm_response(context, question, answer, reference, context_reference):
+    full_context = read_pdf(context_reference)
+    await context.page.testLLM(full_context, question, answer, reference)

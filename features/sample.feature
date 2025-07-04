@@ -4,7 +4,7 @@ Feature: Sample Feature with Playwright and POM
   Scenario Outline: Verify homepage title test
     Given I open the homepage
     Then I should see the homepage title
-    Then I evaulate response for "<question>" "<answer>" "<reference>" "<context_reference>"
+    Then I evaluate the LLM response for "<question>" "<answer>" "<reference>" "<context_reference>"
 
     Examples:
       | question                     | answer                                                                                                                                                                      | reference                                                                                                                                                           | context_reference        |

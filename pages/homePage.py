@@ -5,18 +5,22 @@ from util.reportGen import *
 import time
 
 class HomePage(BasePage):
-
     def __init__(self, page):
         super().__init__(page)
 
-    def goToPage(self):
-        self.open_url("https://www.google.com")
+    @classmethod
+    async def create(cls, page):
+        return cls(page)
 
-    def get_homepage_title(self):
-        return self.get_title()
+    async def goToPage(self):
+        await self.open_url("https://www.google.com")
 
-    def close(self):
-        self.page.close()
+    async def get_homepage_title(self):
+        return await self.get_title()
+
+    async def close(self):
+        await self.page.close()
+
 
     async def testLLM(self, full_context, question, answer, reference):
         # Step 1: Chunk the full context
