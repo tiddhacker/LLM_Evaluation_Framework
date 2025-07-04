@@ -1,66 +1,66 @@
 import os
 import time
-import vertexai
+import sys
+import grpc
+import pandas as pd
+import typing as t
 from dotenv import load_dotenv
-from langchain_google_vertexai import VertexAI, VertexAIEmbeddings
 from datasets import Dataset
 from ragas import evaluate
 from ragas.llms.base import LangchainLLMWrapper
-from ragas.metrics import answer_relevancy, context_precision, context_recall, answer_similarity, faithfulness, answer_correctness
-import pandas as pd
-import google.auth
-import grpc
-import sys
-import typing as t
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    answer_similarity,
+    faithfulness,
+    answer_correctness
+)
 
-# Load environment variables
+# Load .env variables
 load_dotenv()
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION")
 
-if not PROJECT_ID or not LOCATION:
-    raise ValueError("Google Cloud PROJECT_ID and LOCATION must be set in environment variables.")
-
-#suppress unhandled exceptions
+# Suppress unhandled exceptions
 def silent_excepthook(exc_type, exc_value, exc_traceback):
     print(f"Unhandled exception: {exc_value}")
 sys.excepthook = silent_excepthook
 
-# Initialize Vertex AI
-vertexai.init(project=PROJECT_ID, location=LOCATION)
+# Lazy load VertexAI and setup RAGAS
+def get_llm_and_metrics():
+    import vertexai
+    import google.auth
+    from langchain_google_vertexai import VertexAI, VertexAIEmbeddings
 
-# Load Gemini model via Vertex AI
-creds, project_id = google.auth.default()
-ragas_vertexai_llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
-wrapper = LangchainLLMWrapper(ragas_vertexai_llm)
+    if not PROJECT_ID or not LOCATION:
+        raise ValueError("GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION must be set in .env")
 
-# gRPC settings
-grpc_options = [
-    ("grpc.max_receive_message_length", 256 * 1024 * 1024),
-    ("grpc.max_send_message_length", 256 * 1024 * 1024),
-    ("grpc.keepalive_timeout_ms", 600000)
-]
+    vertexai.init(project=PROJECT_ID, location=LOCATION)
+    creds, _ = google.auth.default()
 
-# Custom embeddings class
-class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
-    async def embed_text(self, text: str) -> list[float]:
-        return self.embed([text], 1, "SEMANTIC_SIMILARITY")[0]
+    llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
+    wrapper = LangchainLLMWrapper(llm)
 
-    def set_run_config(self, *args, **kwargs):
-        pass
+    class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
+        async def embed_text(self, text: str) -> list[float]:
+            return self.embed([text], 1, "SEMANTIC_SIMILARITY")[0]
 
-embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
+        def set_run_config(self, *args, **kwargs):
+            pass
 
-# Attach LLM and embeddings to metrics
-metrics = [answer_relevancy, context_recall, context_precision, answer_similarity, faithfulness, answer_correctness]
-for m in metrics:
-    m.llm = wrapper
-    if hasattr(m, "embeddings"):
-        m.embeddings = embeddings
+    embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
 
+    metrics = [answer_relevancy, context_recall, context_precision, answer_similarity, faithfulness, answer_correctness]
+    for m in metrics:
+        m.llm = wrapper
+        if hasattr(m, "embeddings"):
+            m.embeddings = embeddings
 
-# Retry wrapper
-def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
+    return wrapper, embeddings, metrics
+
+# Retry wrapper for RAGAS evaluation
+def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, metrics, max_retries=3, delay=5):
     retries = 0
     while retries < max_retries:
         try:
@@ -73,7 +73,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
             ).to_pandas()
             return result
         except grpc.RpcError as e:
-            print(f"gRPC Error: {e}. Retrying {retries+1}/{max_retries}...")
+            print(f"gRPC Error: {e}. Retrying {retries + 1}/{max_retries}...")
             time.sleep(delay * (2 ** retries))
             retries += 1
         except Exception as e:
@@ -82,7 +82,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, max_retries=3, delay=5):
     print("Evaluation failed after retries.")
     return None
 
-
+# Simple chunking logic
 def chunk_text(text, chunk_size, overlap):
     words = text.split()
     chunks = []
@@ -91,6 +91,7 @@ def chunk_text(text, chunk_size, overlap):
         chunks.append(chunk)
     return chunks
 
+# Merge chunks while respecting max char length
 def merge_chunks_in_batches(chunks, max_char_len):
     merged_batches = []
     current_batch = ""
@@ -110,15 +111,14 @@ def merge_chunks_in_batches(chunks, max_char_len):
 
     return merged_batches
 
-#used for creating sample data. modify as per need
-def createDataSet(merged_batches,question, answer, reference):
+# Used to create dataset from question, answer, context
+def createDataSet(merged_batches, question, answer, reference):
     data_samples = {
         'question': [],
         'answer': [],
         'contexts': [],
         'reference': []
     }
-    batch_scores = []
     for i, merged_context in enumerate(merged_batches):
         print(f"\nProcessing batch {i + 1}/{len(merged_batches)}")
         data_samples['question'].append(question)
@@ -127,21 +127,18 @@ def createDataSet(merged_batches,question, answer, reference):
         data_samples['reference'].append(reference)
     
     return data_samples
-        
 
-# Dataset evaluator
+# Run full evaluation pipeline
 def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
+    print("Initializing LLM and metrics...")
+    wrapper, embeddings, metrics = get_llm_and_metrics()
+
     result_set = []
     dataset = Dataset.from_dict(data_samples)
 
     for i in range(len(dataset)):
         print(f"\n--- Evaluating Merged Chunk #{i + 1}/{len(dataset)} ---")
-        # print(f"Question: {dataset[i]['question']}")
-        # print(f"Answer: {dataset[i]['answer']}")
-        # print(f"Reference: {dataset[i]['reference']}")
-        # print(f"Context (First 300 chars): {dataset[i]['contexts'][0][:300]}...\n")
-
-        result = evaluate_with_retries(i, dataset)
+        result = evaluate_with_retries(i, dataset, wrapper, embeddings, metrics)
         if result is not None:
             result_set.append(result)
 
@@ -149,10 +146,6 @@ def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
         results_df = pd.concat(result_set)
         if "retrieved_contexts" in results_df.columns:
             results_df = results_df.drop(columns=["retrieved_contexts"])
-
-        # To print result in terminal:
-        # print("\nEvaluation Results:\n")
-        # print(results_df.to_markdown(index=False))
     else:
         print("No successful evaluations.")
 

@@ -1,12 +1,14 @@
 from playwright.async_api import Page
 
-
 class BasePage:
-    def __init__(self, page: Page):
+    def __init__(self, page):
         self.page = page
 
-    def open_url(self, url):
-        self.page.goto(url)
+    async def open_url(self, url):
+        await self.page.goto(url)
 
-    def get_title(self):
-        return self.page.title()
+    async def get_title(self):
+        return await self.page.title()
+
+    async def close(self):
+        await self.page.close()
