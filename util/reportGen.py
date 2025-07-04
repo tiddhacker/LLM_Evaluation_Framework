@@ -1,10 +1,8 @@
 import os
 import pandas as pd
-from torch import t
 import typing as t
 
-
-#generate html and excel report and publish to reports directory
+# Generate HTML and Excel report and publish to reports directory
 async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame]):
     """
     Generates and saves evaluation reports in both HTML and Excel formats under the "reports" directory.
@@ -30,10 +28,8 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
     report_filename_html = os.path.join(reports_dir, f"{report_name}.html")
     report_filename_xlsx = os.path.join(reports_dir, f"{report_name}.xlsx")
 
-    # HTML table (no style, just raw table to apply DataTables enhancements)
     html_table = results_df.to_html(index=False, table_id="resultsTable", border=0)
 
-    # === HTML Template with Styling, DataTables, Chart.js ===
     html_template = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -41,10 +37,8 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Evaluation Report</title>
-        <link rel="stylesheet" 
-              href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-        <link rel="stylesheet" 
-              href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
         <style>
             body {{
                 background-color: #f8f9fa;
@@ -58,14 +52,22 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
             }}
             table {{
                 font-size: 0.95rem;
+                table-layout: fixed;
+                border-collapse: separate;
+                border-spacing: 10px;
+                width: 100%;
+                word-wrap: break-word;
+            }}
+            th, td {{
+                text-align: left;
+                vertical-align: top;
+                padding: 8px;
+                word-wrap: break-word;
+                white-space: normal;
             }}
             thead th {{
                 background-color: #007bff !important;
                 color: #ffffff;
-                text-align: center;
-                vertical-align: middle;
-            }}
-            tbody td {{
                 text-align: center;
                 vertical-align: middle;
             }}
@@ -92,7 +94,6 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
         <script>
-            // DataTables initialization
             $(document).ready(function() {{
                 $('#resultsTable').DataTable({{
                     scrollX: true,
@@ -100,11 +101,9 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
                 }});
             }});
 
-            // Chart.js Bar Chart from numeric columns
             const ctx = document.getElementById('summaryChart').getContext('2d');
-            const labels = {list(results_df.columns)};
             const numericData = {results_df.select_dtypes(include='number').mean().round(3).to_dict()};
-            
+
             new Chart(ctx, {{
                 type: 'bar',
                 data: {{
@@ -138,6 +137,7 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
     </body>
     </html>
     """
+
     # Save HTML
     with open(report_filename_html, "w", encoding="utf-8") as file:
         file.write(html_template)
