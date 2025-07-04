@@ -21,3 +21,8 @@ async def verify_homepage_title(context):
 async def evaluate_llm_response(context, question, answer, reference, context_reference):
     full_context = read_pdf(context_reference)
     await context.page.testLLM(full_context, question, answer, reference)
+
+@then('I evaluate the LLM response with local model for "{question}" "{answer}" "{reference}"')
+@async_run_until_complete
+async def evaluate_llm_response(context, question, answer, reference):
+    await context.page.testLLM_localModel(question, answer, reference)

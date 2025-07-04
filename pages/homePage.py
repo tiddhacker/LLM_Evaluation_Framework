@@ -1,5 +1,6 @@
 from .basePage import BasePage
 from llmtesteval import evaluate_dataset, chunk_text, merge_chunks_in_batches, createDataSet
+from test_localllm import evaluate_dataset_localModel
 from util.commonUtil import *
 from util.reportGen import *
 import time
@@ -41,4 +42,12 @@ class HomePage(BasePage):
         print(f"\nEvaluation completed in {elapsed:.2f} seconds")
 
         # Step 5: Generate full report
+        await generateEvaluationReport("testReport", result_set)
+
+
+    async def testLLM_localModel(self, question, answer, reference):
+        # Step 1: Evaluate using local model
+        result_set= await evaluate_dataset_localModel(question, answer, reference)
+
+        # Step 2: Generate full report
         await generateEvaluationReport("testReport", result_set)
