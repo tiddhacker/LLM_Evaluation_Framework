@@ -22,6 +22,10 @@ answer_correctness:	Checks if the answer is semantically correct compared to the
 
 Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS step by step"
 
+eg. - place json key in user directory and browse it to set path. 
+variable name: GOOGLE_APPLICATION_CREDENTIALS
+variable value: browse it to json file you got from google
+
 Reference:
  ==========
 Step 1: Set Up Google Cloud Project

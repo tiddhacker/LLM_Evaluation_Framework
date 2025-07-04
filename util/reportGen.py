@@ -5,7 +5,7 @@ import typing as t
 
 
 #generate html and excel report and publish to reports directory
-def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame]):
+async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataFrame]):
     """
     Generates and saves evaluation reports in both HTML and Excel formats under the "reports" directory.
 

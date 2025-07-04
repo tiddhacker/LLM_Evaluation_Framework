@@ -24,21 +24,21 @@ class HomePage(BasePage):
 
     async def testLLM(self, full_context, question, answer, reference):
         # Step 1: Chunk the full context
-        chunks = chunk_text(full_context, chunk_size=1000, overlap=200)
+        chunks = await chunk_text(full_context, chunk_size=1000, overlap=200)
 
         # Step 2: Merge into batches within max character limit
-        merged_batches = merge_chunks_in_batches(chunks, max_char_len=25000)
+        merged_batches = await merge_chunks_in_batches(chunks, max_char_len=25000)
 
         print(f"Total Batches Created: {len(merged_batches)}")
 
         # Step 3: Create dataset
-        data_samples = createDataSet(merged_batches, question, answer, reference)
+        data_samples = await createDataSet(merged_batches, question, answer, reference)
 
         # Step 4: Evaluate all batches
         start_time = time.time()
-        result_set = evaluate_dataset(data_samples)
+        result_set = await evaluate_dataset(data_samples)
         elapsed = time.time() - start_time
         print(f"\nEvaluation completed in {elapsed:.2f} seconds")
 
         # Step 5: Generate full report
-        generateEvaluationReport("testReport", result_set)
+        await generateEvaluationReport("testReport", result_set)

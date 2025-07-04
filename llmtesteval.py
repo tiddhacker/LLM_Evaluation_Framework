@@ -83,7 +83,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, met
     return None
 
 # Simple chunking logic
-def chunk_text(text, chunk_size, overlap):
+async def chunk_text(text, chunk_size, overlap):
     words = text.split()
     chunks = []
     for i in range(0, len(words), chunk_size - overlap):
@@ -92,7 +92,7 @@ def chunk_text(text, chunk_size, overlap):
     return chunks
 
 # Merge chunks while respecting max char length
-def merge_chunks_in_batches(chunks, max_char_len):
+async def merge_chunks_in_batches(chunks, max_char_len):
     merged_batches = []
     current_batch = ""
     current_len = 0
@@ -112,7 +112,7 @@ def merge_chunks_in_batches(chunks, max_char_len):
     return merged_batches
 
 # Used to create dataset from question, answer, context
-def createDataSet(merged_batches, question, answer, reference):
+async def createDataSet(merged_batches, question, answer, reference):
     data_samples = {
         'question': [],
         'answer': [],
@@ -129,7 +129,7 @@ def createDataSet(merged_batches, question, answer, reference):
     return data_samples
 
 # Run full evaluation pipeline
-def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
+async def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
     print("Initializing LLM and metrics...")
     wrapper, embeddings, metrics = get_llm_and_metrics()
 
