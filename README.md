@@ -2,6 +2,7 @@
 1. Install VS Code (It supports mapping of feature vs step def, which pycharm won't support in community edition)
 2. Install cucumber, python extension in vs code
 3. Set path for GOOGLE_APPLICATION_CREDENTIALS (Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS)
+4. In .env file update this GOOGLE_CLOUD_PROJECT=my-gcp-project-id  (project id as per json key file form step 3)
 3. Open terminal
 4. Run behave --tags=smoke
 
