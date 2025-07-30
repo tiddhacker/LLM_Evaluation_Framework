@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 **/__pycache__/*.pyc
 pages/__pycache__/*
+
 # C extensions
 *.so
 /reports
@@ -34,3 +35,6 @@ pip-delete-this-directory.txt
 .cache
 nosetests.xml
 coverage.xml
+
+#API KEYS
+resources/API_Keys/**/*.json
