@@ -32,9 +32,13 @@ class LazyModelLoader:
         if self.model_loaded:
             return
 
+        #loading local model
         print("Loading local model for evaluation...")
+        local_model_name = os.getenv("MODEL_NAME")
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        local_model_path= os.path.join(BASE_DIR, "models", local_model_name)
+        print("Model Directory: ",local_model_path)
 
-        local_model_path = "models/phi-3-mini-4k-instruct"
         tokenizer = AutoTokenizer.from_pretrained(local_model_path)
         model = AutoModelForCausalLM.from_pretrained(
             local_model_path,

@@ -1,10 +1,10 @@
 import os
+from dotenv import load_dotenv
 import time
 import sys
 import grpc
 import pandas as pd
 import typing as t
-from dotenv import load_dotenv
 from datasets import Dataset
 from ragas import evaluate
 from ragas.llms.base import LangchainLLMWrapper
@@ -17,10 +17,18 @@ from ragas.metrics import (
     answer_correctness
 )
 
-# Load .env variables
+# Load environment variables from .env file
 load_dotenv()
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION")
+VERTEX_API_KEY_FILENAME = os.getenv("VERTEX_APIKEY_FILE_NAME")
+
+# Config for loading LLM key
+PROJECT_ID = os.getenv("PROJECT_ID")
+LOCATION = os.getenv("LOCATION")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "resources", "API_Keys", "VertexAPIKey", VERTEX_API_KEY_FILENAME)
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_PATH # Set GOOGLE_APPLICATION_CREDENTIALS env var
+# print("Using credentials from:", os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
 
 
 # Suppress unhandled exceptions
@@ -44,6 +52,7 @@ def get_llm_and_metrics():
     #Authenticates with Google Cloud.
     vertexai.init(project=PROJECT_ID, location=LOCATION)
     creds, _ = google.auth.default()
+    print("Resolved credentials path:",creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
 
     #Loads the Gemini LLM from VertexAI and wraps it with LangchainLLMWrapper so RAGAS can use it.
     llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)

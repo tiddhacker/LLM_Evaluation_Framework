@@ -1,10 +1,18 @@
 #Run the scripts using-
 1. Install VS Code (It supports mapping of feature vs step def, which pycharm won't support in community edition)
 2. Install cucumber, python extension in vs code
-3. Set path for GOOGLE_APPLICATION_CREDENTIALS (Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS)
-4. In .env file update this GOOGLE_CLOUD_PROJECT=my-gcp-project-id  (project id as per json key file form step 3)
+3. Create Vertex API KEY and place the file under resources/API_KEYS/VertexAPIKey
+4. In .env file give the file name under (VERTEX_APIKEY_FILE_NAME)
+4. In .env file update project id and location. Project id to be taken from json key file
 3. Open terminal
 4. Run behave --tags=smoke
+
+#For setting up local model-
+1. In env file just keep LOCAL MODEL DETAILS
+
+MODEL_NAME= give the model name
+
+2. comment out all other lines
 
 
 ====
@@ -21,11 +29,7 @@ answer_correctness:	Checks if the answer is semantically correct compared to the
 ====
 
 
-Search "how to create vertex api in google and set path for GOOGLE_APPLICATION_CREDENTIALS step by step"
-
-eg. - place json key in user directory and browse it to set path. 
-variable name: GOOGLE_APPLICATION_CREDENTIALS
-variable value: browse it to json file you got from google
+Search "how to create and download vertex api key in json format step by step"
 
 Reference:
 ===
