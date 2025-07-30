@@ -37,4 +37,4 @@ nosetests.xml
 coverage.xml
 
 #API KEYS
-resources/API_Keys/**/*.json
+resources/API_Keys/**/*.jsonresources/API_Keys/VertexAPIKey/*.json
