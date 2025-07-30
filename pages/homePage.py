@@ -41,13 +41,16 @@ class HomePage(BasePage):
         elapsed = time.time() - start_time
         print(f"\nEvaluation completed in {elapsed:.2f} seconds")
 
+        return result_set
         # Step 5: Generate full report
-        await generateEvaluationReport("testReport", result_set)
+        # await generateEvaluationReport("testReport", result_set)
 
 
     async def testLLM_localModel(self, question, answer, reference):
         # Step 1: Evaluate using local model
         result_set= await evaluate_dataset_localModel(question, answer, reference)
 
+        return result_set
+
         # Step 2: Generate full report
-        await generateEvaluationReport("testReport", result_set)
+        # await generateEvaluationReport("testReport", result_set)

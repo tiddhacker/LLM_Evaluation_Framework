@@ -20,9 +20,15 @@ async def verify_homepage_title(context):
 @async_run_until_complete
 async def evaluate_llm_response(context, question, answer, reference, context_reference):
     full_context = read_pdf(context_reference)
-    await context.page.testLLM(full_context, question, answer, reference)
+    result_set= await context.page.testLLM(full_context, question, answer, reference)
+    # Store results to context.all_results. Will be used for generating final report in environment.py file
+    if result_set:
+        context.all_results.extend(result_set)
 
 @then('I evaluate the LLM response with local model for "{question}" "{answer}" "{reference}"')
 @async_run_until_complete
 async def evaluate_llm_response(context, question, answer, reference):
-    await context.page.testLLM_localModel(question, answer, reference)
+    result_set= await context.page.testLLM_localModel(question, answer, reference)
+    # Store results to context.all_results. Will be used for generating final report in environment.py file
+    if result_set:
+        context.all_results.extend(result_set)

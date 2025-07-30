@@ -22,7 +22,6 @@ sys.excepthook = silent_excepthook
 
 load_dotenv()
 
-
 class LazyModelLoader:
     def __init__(self):
         self.model_loaded = False
@@ -107,7 +106,7 @@ def createDataSet(question: str, answer: str, reference: str):
 async def evaluate_dataset_localModel(question: str, answer: str, reference: str) -> t.List[pd.DataFrame]:
     data_samples = createDataSet(question, answer, reference)
     dataset = Dataset.from_dict(data_samples)
-    print("\n--- Evaluating Semantic Similarity ---")
+    print("\n--- Evaluating Answer Similarity ---")
     result = await evaluate_with_retries(0, dataset)
     if result is not None:
         print("\nEvaluation Result:\n")

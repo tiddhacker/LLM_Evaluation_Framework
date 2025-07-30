@@ -22,10 +22,14 @@ load_dotenv()
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
 LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION")
 
+
 # Suppress unhandled exceptions
 def silent_excepthook(exc_type, exc_value, exc_traceback):
     print(f"Unhandled exception: {exc_value}")
+
+
 sys.excepthook = silent_excepthook
+
 
 # Lazy load VertexAI and setup RAGAS
 def get_llm_and_metrics():
@@ -36,9 +40,12 @@ def get_llm_and_metrics():
     if not PROJECT_ID or not LOCATION:
         raise ValueError("GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION must be set in .env")
 
+    #Initializes Vertex AI with project and location.
+    #Authenticates with Google Cloud.
     vertexai.init(project=PROJECT_ID, location=LOCATION)
     creds, _ = google.auth.default()
 
+    #Loads the Gemini LLM from VertexAI and wraps it with LangchainLLMWrapper so RAGAS can use it.
     llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
     wrapper = LangchainLLMWrapper(llm)
 
@@ -49,8 +56,10 @@ def get_llm_and_metrics():
         def set_run_config(self, *args, **kwargs):
             pass
 
+    #Custom subclass of VertexAIEmbeddings for embedding texts (used in similarity metrics)
     embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
 
+    #Assign the LLM and embeddings to each metric so it knows how to evaluate.
     metrics = [answer_relevancy, context_recall, context_precision, answer_similarity, faithfulness, answer_correctness]
     for m in metrics:
         m.llm = wrapper
@@ -59,7 +68,9 @@ def get_llm_and_metrics():
 
     return wrapper, embeddings, metrics
 
+
 # Retry wrapper for RAGAS evaluation
+# Selects one row (index) from the dataset and evaluates it using RAGAS.
 def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, metrics, max_retries=3, delay=5):
     retries = 0
     while retries < max_retries:
@@ -70,7 +81,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, met
                 metrics=metrics,
                 llm=wrapper,
                 embeddings=embeddings
-            ).to_pandas()
+            ).to_pandas() #Converts result to a pandas DataFrame.
             return result
         except grpc.RpcError as e:
             print(f"gRPC Error: {e}. Retrying {retries + 1}/{max_retries}...")
@@ -82,6 +93,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, met
     print("Evaluation failed after retries.")
     return None
 
+
 # Simple chunking logic
 async def chunk_text(text, chunk_size, overlap):
     words = text.split()
@@ -90,6 +102,7 @@ async def chunk_text(text, chunk_size, overlap):
         chunk = " ".join(words[i:i + chunk_size])
         chunks.append(chunk)
     return chunks
+
 
 # Merge chunks while respecting max char length
 async def merge_chunks_in_batches(chunks, max_char_len):
@@ -111,6 +124,7 @@ async def merge_chunks_in_batches(chunks, max_char_len):
 
     return merged_batches
 
+
 # Used to create dataset from question, answer, context
 async def createDataSet(merged_batches, question, answer, reference):
     data_samples = {
@@ -125,8 +139,9 @@ async def createDataSet(merged_batches, question, answer, reference):
         data_samples['answer'].append(answer)
         data_samples['contexts'].append([merged_context])
         data_samples['reference'].append(reference)
-    
+
     return data_samples
+
 
 # Run full evaluation pipeline
 async def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
@@ -134,7 +149,7 @@ async def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
     wrapper, embeddings, metrics = get_llm_and_metrics()
 
     result_set = []
-    dataset = Dataset.from_dict(data_samples)
+    dataset = Dataset.from_dict(data_samples) #Convert the dictionary into a HuggingFace Dataset.
 
     for i in range(len(dataset)):
         print(f"\n--- Evaluating Merged Chunk #{i + 1}/{len(dataset)} ---")

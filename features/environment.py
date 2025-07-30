@@ -2,23 +2,51 @@ from playwright.async_api import async_playwright
 import asyncio
 import nest_asyncio
 
+from util.reportGen import generateEvaluationReport
+
 nest_asyncio.apply()
 
 def before_all(context):
-    context.loop = asyncio.get_event_loop()
-    context.playwright = context.loop.run_until_complete(async_playwright().start())
-    context.browser = context.loop.run_until_complete(
-        context.playwright.chromium.launch(headless=False)
-    )
+    context.all_results = []     # A list to collect all scenario result dataframes
+
+    try:
+        context.loop = asyncio.get_event_loop()
+        context.playwright = context.loop.run_until_complete(async_playwright().start())
+        context.browser = context.loop.run_until_complete(
+            context.playwright.chromium.launch(headless=False)
+        )
+    except Exception as e:
+        print(f"[before_all] Error starting Playwright or browser: {e}")
+        context.playwright = None
+        context.browser = None
+
 
 def before_scenario(context, scenario):
+    if context.browser is None:
+        raise RuntimeError("Browser was not initialized in before_all.")
+
     context.browser_context = context.loop.run_until_complete(context.browser.new_context())
     context.page = context.loop.run_until_complete(context.browser_context.new_page())
 
+
 def after_scenario(context, scenario):
-    context.loop.run_until_complete(context.page.close())
-    context.loop.run_until_complete(context.browser_context.close())
+    if hasattr(context, "page"):
+        context.loop.run_until_complete(context.page.close())
+    if hasattr(context, "browser_context"):
+        context.loop.run_until_complete(context.browser_context.close())
+
 
 def after_all(context):
-    context.loop.run_until_complete(context.browser.close())
-    context.loop.run_until_complete(context.playwright.stop())
+    import asyncio
+    async def _generate():
+        if context.all_results:
+            await generateEvaluationReport("FinalEvaluationReport", context.all_results)
+        else:
+            print("No results to report.")
+
+    # Run async report generator
+    asyncio.get_event_loop().run_until_complete(_generate())
+    if hasattr(context, "browser") and context.browser:
+        context.loop.run_until_complete(context.browser.close())
+    if hasattr(context, "playwright") and context.playwright:
+        context.loop.run_until_complete(context.playwright.stop())
