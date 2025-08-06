@@ -1,10 +1,11 @@
 import os
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = ""
 from dotenv import load_dotenv
 import time
 import sys
 import grpc
 import pandas as pd
-import typing as t
 from datasets import Dataset
 from ragas import evaluate
 from ragas.llms.base import LangchainLLMWrapper
@@ -16,6 +17,9 @@ from ragas.metrics import (
     faithfulness,
     answer_correctness
 )
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma                                                     # <---- ADDED
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,19 +31,29 @@ LOCATION = os.getenv("LOCATION")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, "resources", "API_Keys", "VertexAPIKey", VERTEX_API_KEY_FILENAME)
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_PATH # Set GOOGLE_APPLICATION_CREDENTIALS env var
-# print("Using credentials from:", os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SERVICE_ACCOUNT_PATH
 
-
-# Suppress unhandled exceptions
+#this is to ignore some unwanted logs
 def silent_excepthook(exc_type, exc_value, exc_traceback):
+    # Ignore noisy gRPC shutdown warnings
+    if "grpc_wait_for_shutdown" in str(exc_value):
+        return
     print(f"Unhandled exception: {exc_value}")
-
-
 sys.excepthook = silent_excepthook
 
+PERSIST_DIR = r"C:\Users\VM116ZZ\PycharmProjects\POC\vectordb"
+TOP_K = 3
+# LOAD CHROMA AS RETRIEVER
+def load_vectordb():
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    vectordb = Chroma(
+        collection_name="rag_contexts",
+        persist_directory=PERSIST_DIR,
+        embedding_function=embeddings,
+    )
+    return vectordb.as_retriever(search_kwargs={"k": TOP_K})
 
-# Lazy load VertexAI and setup RAGAS
+
 def get_llm_and_metrics():
     import vertexai
     import google.auth
@@ -48,13 +62,10 @@ def get_llm_and_metrics():
     if not PROJECT_ID or not LOCATION:
         raise ValueError("GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION must be set in .env")
 
-    #Initializes Vertex AI with project and location.
-    #Authenticates with Google Cloud.
     vertexai.init(project=PROJECT_ID, location=LOCATION)
     creds, _ = google.auth.default()
-    print("Resolved credentials path:",creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
+    print("Resolved credentials path:", creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
 
-    #Loads the Gemini LLM from VertexAI and wraps it with LangchainLLMWrapper so RAGAS can use it.
     llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
     wrapper = LangchainLLMWrapper(llm)
 
@@ -65,10 +76,8 @@ def get_llm_and_metrics():
         def set_run_config(self, *args, **kwargs):
             pass
 
-    #Custom subclass of VertexAIEmbeddings for embedding texts (used in similarity metrics)
     embeddings = RAGASVertexAIEmbeddings(model_name="text-embedding-005", credentials=creds)
 
-    #Assign the LLM and embeddings to each metric so it knows how to evaluate.
     metrics = [answer_relevancy, context_recall, context_precision, answer_similarity, faithfulness, answer_correctness]
     for m in metrics:
         m.llm = wrapper
@@ -78,8 +87,6 @@ def get_llm_and_metrics():
     return wrapper, embeddings, metrics
 
 
-# Retry wrapper for RAGAS evaluation
-# Selects one row (index) from the dataset and evaluates it using RAGAS.
 def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, metrics, max_retries=3, delay=5):
     retries = 0
     while retries < max_retries:
@@ -90,7 +97,7 @@ def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, met
                 metrics=metrics,
                 llm=wrapper,
                 embeddings=embeddings
-            ).to_pandas() #Converts result to a pandas DataFrame.
+            ).to_pandas()
             return result
         except grpc.RpcError as e:
             print(f"gRPC Error: {e}. Retrying {retries + 1}/{max_retries}...")
@@ -103,74 +110,47 @@ def evaluate_with_retries(index: int, dataset: Dataset, wrapper, embeddings, met
     return None
 
 
-# Simple chunking logic
-async def chunk_text(text, chunk_size, overlap):
-    words = text.split()
-    chunks = []
-    for i in range(0, len(words), chunk_size - overlap):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
-    return chunks
+async def evaluate_single_question(question, answer, reference):
+    # 1) Load vector DB
+    retriever = load_vectordb()
 
+    # 2) Retrieve top-k relevant chunks
+    retrieved_docs = retriever.invoke(question)
+    contexts = [doc.page_content for doc in retrieved_docs]
+    source_docs = [doc.metadata.get("source", "") for doc in retrieved_docs]
 
-# Merge chunks while respecting max char length
-async def merge_chunks_in_batches(chunks, max_char_len):
-    merged_batches = []
-    current_batch = ""
-    current_len = 0
+    print(f"\nTop-{TOP_K} retrieved context chunks for question: '{question}'")
+    for idx, doc in enumerate(retrieved_docs, start=1):
+        print(f"  [{idx}] Source: {doc.metadata.get('source', '')}")
+        print(f"      Chunk: {doc.page_content[:150]}...\n")  # printing only first 150 chars for readability
 
-    for chunk in chunks:
-        chunk_len = len(chunk)
-        if current_len + chunk_len <= max_char_len:
-            current_batch += " " + chunk
-            current_len += chunk_len + 1
-        else:
-            merged_batches.append(current_batch.strip())
-            current_batch = chunk
-            current_len = chunk_len
-    if current_batch:
-        merged_batches.append(current_batch.strip())
-
-    return merged_batches
-
-
-# Used to create dataset from question, answer, context
-async def createDataSet(merged_batches, question, answer, reference):
+    # 3) Convert to RAGAS data-sample format
     data_samples = {
-        'question': [],
-        'answer': [],
-        'contexts': [],
-        'reference': []
+        'question': [question],
+        'answer': [answer],
+        'contexts': [contexts],
+        'reference': [reference],
+        'ground_truth': [reference],
+        'sources': [source_docs]
+
     }
-    for i, merged_context in enumerate(merged_batches):
-        print(f"\nProcessing batch {i + 1}/{len(merged_batches)}")
-        data_samples['question'].append(question)
-        data_samples['answer'].append(answer)
-        data_samples['contexts'].append([merged_context])
-        data_samples['reference'].append(reference)
 
-    return data_samples
-
-
-# Run full evaluation pipeline
-async def evaluate_dataset(data_samples) -> t.List[pd.DataFrame]:
     print("Initializing LLM and metrics...")
     wrapper, embeddings, metrics = get_llm_and_metrics()
 
-    result_set = []
-    dataset = Dataset.from_dict(data_samples) #Convert the dictionary into a HuggingFace Dataset.
-
+    results_set = []
+    dataset = Dataset.from_dict(data_samples)
     for i in range(len(dataset)):
-        print(f"\n--- Evaluating Merged Chunk #{i + 1}/{len(dataset)} ---")
+        print(f"--- Evaluating sample #{i + 1}/{len(dataset)} ---")
         result = evaluate_with_retries(i, dataset, wrapper, embeddings, metrics)
         if result is not None:
-            result_set.append(result)
+          results_set.append(result)
 
-    if result_set:
-        results_df = pd.concat(result_set)
+    if results_set:
+        results_df = pd.concat(results_set)
         if "retrieved_contexts" in results_df.columns:
             results_df = results_df.drop(columns=["retrieved_contexts"])
     else:
-        print("No successful evaluations.")
+        print("No evaluation completed.")
 
-    return result_set
+    return results_set

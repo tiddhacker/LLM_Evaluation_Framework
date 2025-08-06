@@ -13,7 +13,7 @@ def before_all(context):
         context.loop = asyncio.get_event_loop()
         context.playwright = context.loop.run_until_complete(async_playwright().start())
         context.browser = context.loop.run_until_complete(
-            context.playwright.chromium.launch(headless=False)
+            context.playwright.chromium.launch(headless=False,channel="chrome")
         )
     except Exception as e:
         print(f"[before_all] Error starting Playwright or browser: {e}")
@@ -38,14 +38,18 @@ def after_scenario(context, scenario):
 
 def after_all(context):
     import asyncio
+    import pandas as pd
+
     async def _generate():
-        if context.all_results:
-            await generateEvaluationReport("FinalEvaluationReport", context.all_results)
+        # Only include actual DataFrames
+        df_only = [r for r in context.all_results if isinstance(r, pd.DataFrame)]
+        if df_only:
+            await generateEvaluationReport("FinalEvaluationReport", df_only)
         else:
             print("No results to report.")
 
-    # Run async report generator
     asyncio.get_event_loop().run_until_complete(_generate())
+
     if hasattr(context, "browser") and context.browser:
         context.loop.run_until_complete(context.browser.close())
     if hasattr(context, "playwright") and context.playwright:

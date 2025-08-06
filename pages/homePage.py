@@ -1,8 +1,6 @@
 from .basePage import BasePage
-from llmtesteval import evaluate_dataset, chunk_text, merge_chunks_in_batches, createDataSet
+from llmtesteval import evaluate_single_question
 from test_localllm import evaluate_dataset_localModel
-from util.commonUtil import *
-from util.reportGen import *
 import time
 
 class HomePage(BasePage):
@@ -23,24 +21,11 @@ class HomePage(BasePage):
         await self.page.close()
 
 
-    async def testLLM(self, full_context, question, answer, reference):
-        # Step 1: Chunk the full context
-        chunks = await chunk_text(full_context, chunk_size=1000, overlap=200)
-
-        # Step 2: Merge into batches within max character limit
-        merged_batches = await merge_chunks_in_batches(chunks, max_char_len=25000)
-
-        print(f"Total Batches Created: {len(merged_batches)}")
-
-        # Step 3: Create dataset
-        data_samples = await createDataSet(merged_batches, question, answer, reference)
-
-        # Step 4: Evaluate all batches
+    async def testLLM(self, question, answer, reference):
         start_time = time.time()
-        result_set = await evaluate_dataset(data_samples)
+        result_set = await evaluate_single_question(question, answer, reference)
         elapsed = time.time() - start_time
         print(f"\nEvaluation completed in {elapsed:.2f} seconds")
-
         return result_set
         # Step 5: Generate full report
         # await generateEvaluationReport("testReport", result_set)
@@ -48,8 +33,10 @@ class HomePage(BasePage):
 
     async def testLLM_localModel(self, question, answer, reference):
         # Step 1: Evaluate using local model
+        start_time = time.time()
         result_set= await evaluate_dataset_localModel(question, answer, reference)
-
+        elapsed = time.time() - start_time
+        print(f"\nEvaluation completed in {elapsed:.2f} seconds")
         return result_set
 
         # Step 2: Generate full report
