@@ -135,7 +135,7 @@ if match:
 try:
     metrics = json.loads(raw_text)
 except json.JSONDecodeError:
-    print("⚠ LLM returned non-JSON output, falling back to defaults.")
+    print("LLM returned non-JSON output, falling back to defaults.")
     metrics = {
         "correctness": 0, "completeness": 0, "clarity": 0,
         "hallucination": 0, "faithfulness": 0, "relevance": 0, "conciseness": 0,

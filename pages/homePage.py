@@ -1,6 +1,6 @@
 from .basePage import BasePage
-from llmtesteval import evaluate_single_question
-from test_localllm import evaluate_dataset_localModel
+from RAGGeminiEvaluator import evaluate_single_question
+from RAGEvaluator_localFreeModel import evaluate_dataset_localModel
 import time
 
 class HomePage(BasePage):
