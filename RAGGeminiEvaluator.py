@@ -66,7 +66,7 @@ def get_llm_and_metrics():
     creds, _ = google.auth.default()
     print("Resolved credentials path:", creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
 
-    llm = VertexAI(model_name="gemini-2.0-flash-001", credentials=creds)
+    llm = VertexAI(model_name=os.getenv("GEMINI_MODEL_NAME"), credentials=creds)
     wrapper = LangchainLLMWrapper(llm)
 
     class RAGASVertexAIEmbeddings(VertexAIEmbeddings):

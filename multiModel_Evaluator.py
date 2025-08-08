@@ -21,7 +21,7 @@ load_dotenv()
 # ==========================================================
 #  LLM PROVIDER WRAPPER — plug & play
 # ==========================================================
-def call_llm(provider, model_name, prompt, retries=3, wait_seconds=10):
+def call_llm(provider, model_name, prompt, retries=5, wait_seconds=15):
     provider = provider.lower()
 
     if provider == "gemini":
@@ -107,7 +107,7 @@ for idx, row in df.iterrows():
     Rate the LLM response on a scale of 0 to 1 for correctness, factuality, and relevance.
     Return ONLY a number between 0 and 1.
     """
-    gemini_eval = call_llm("gemini", "gemini-2.0-flash-001", reasoning_prompt)
+    gemini_eval = call_llm("gemini", "gemini-2.0-flash-lite", reasoning_prompt)
     try:
         reasoning_score = float(gemini_eval.strip())
     except ValueError:
@@ -131,7 +131,7 @@ for idx, row in df.iterrows():
     - conciseness: integer 0-10
     - comments: short constructive feedback
     """
-    metrics_eval = call_llm("gemini", "gemini-2.0-flash-001", metrics_prompt)
+    metrics_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), metrics_prompt)
     raw_text = metrics_eval.strip()
 
     if raw_text.startswith("```"):
@@ -158,4 +158,4 @@ for idx, row in df.iterrows():
 # ==========================================================
 # Generate Report
 # ==========================================================
-generate_html_report(df, "llm_evaluation_report.html")
+generate_html_report(df, "reports/multiModel_Evaluator_report.html")
