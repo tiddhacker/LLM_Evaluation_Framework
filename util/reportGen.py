@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 import typing as t
@@ -146,3 +147,85 @@ async def generateEvaluationReport(report_name: str, result_set: t.List[pd.DataF
     # Save Excel
     results_df.to_excel(report_filename_xlsx, index=False)
     print(f"✅ Excel report generated: '{report_filename_xlsx}'")
+
+
+#to generate report for multi-model
+def generate_html_report(df, output_file="evaluation_report.html"):
+    # Simple inline CSS for table styling
+    styles = """
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h1 { color: #333; }
+      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+      th { background-color: #f2f2f2; text-align: left; }
+      tr:nth-child(even) { background-color: #fafafa; }
+      .metrics-key { font-weight: bold; }
+      .metrics-comments { margin-top: 5px; font-style: italic; color: #555; }
+    </style>
+    """
+
+    # HTML Header and Table Header
+    html = f"""
+    <html>
+    <head><title>LLM Evaluation Report</title>{styles}</head>
+    <body>
+    <h1>LLM Evaluation Report</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Question</th>
+          <th>Expected Answer</th>
+          <th>LLM Response</th>
+          <th>Similarity Score</th>
+          <th>Reasoning Score</th>
+          <th>Metrics</th>
+        </tr>
+      </thead>
+      <tbody>
+    """
+
+    for idx, row in df.iterrows():
+        question = str(row["question"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        expected = str(row["expected_answer"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        response = str(row["llm_response"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        similarity_score = row.get("similarity_score", 0)
+        reasoning_score = row.get("reasoning_score", 0)
+
+        metrics_html = ""
+        metrics_json_str = row.get("metrics_json", "{}")
+        try:
+            metrics_json = json.loads(metrics_json_str)
+        except Exception:
+            metrics_json = {}
+
+        # Build nicely formatted metrics
+        for key, value in metrics_json.items():
+            if key == "comments":
+                # Put comments in italic below the scores
+                metrics_html += f'<div class="metrics-comments">{value}</div>'
+            else:
+                metrics_html += f'<div><span class="metrics-key">{key.capitalize()}:</span> {value}</div>'
+
+        html += f"""
+        <tr>
+          <td>{idx + 1}</td>
+          <td>{question}</td>
+          <td>{expected}</td>
+          <td>{response}</td>
+          <td>{similarity_score:.2f}</td>
+          <td>{reasoning_score:.2f}</td>
+          <td>{metrics_html}</td>
+        </tr>
+        """
+
+    html += """
+      </tbody>
+    </table>
+    </body>
+    </html>
+    """
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(html)

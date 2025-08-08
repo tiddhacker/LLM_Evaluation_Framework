@@ -1,0 +1,135 @@
+
+    <html>
+    <head><title>LLM Evaluation Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h1 { color: #333; }
+      table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+      th { background-color: #f2f2f2; text-align: left; }
+      tr:nth-child(even) { background-color: #fafafa; }
+      .metrics-key { font-weight: bold; }
+      .metrics-comments { margin-top: 5px; font-style: italic; color: #555; }
+    </style>
+    </head>
+    <body>
+    <h1>LLM Evaluation Report</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Question</th>
+          <th>Expected Answer</th>
+          <th>LLM Response</th>
+          <th>Similarity Score</th>
+          <th>Reasoning Score</th>
+          <th>Metrics</th>
+        </tr>
+      </thead>
+      <tbody>
+    
+        <tr>
+          <td>1</td>
+          <td>What is the capital of France?</td>
+          <td>The capital of France is Paris.</td>
+          <td>Paris</td>
+          <td>0.73</td>
+          <td>1.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 10</div><div><span class="metrics-key">Completeness:</span> 8</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 10</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer is correct and concise. A slightly more complete response would be "Paris", the capital of France.</div></td>
+        </tr>
+        
+        <tr>
+          <td>2</td>
+          <td>Who wrote the play 'Hamlet'?</td>
+          <td>'Hamlet' was written by William Shakespeare.</td>
+          <td>William Shakespeare</td>
+          <td>0.64</td>
+          <td>1.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 10</div><div><span class="metrics-key">Completeness:</span> 8</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 10</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer is correct but could be more complete by including 'Hamlet was written by'.</div></td>
+        </tr>
+        
+        <tr>
+          <td>3</td>
+          <td>What is the largest planet in our Solar System?</td>
+          <td>The largest planet in our Solar System is Jupiter.</td>
+          <td>Jupiter</td>
+          <td>0.60</td>
+          <td>1.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 10</div><div><span class="metrics-key">Completeness:</span> 8</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 10</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer is correct, but a more complete answer would include "The largest planet in our Solar System is Jupiter."</div></td>
+        </tr>
+        
+        <tr>
+          <td>4</td>
+          <td>What is the capital of Japan?</td>
+          <td>The capital of Japan is Tokyo.</td>
+          <td>Kyoto</td>
+          <td>0.45</td>
+          <td>0.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 0</div><div><span class="metrics-key">Completeness:</span> 0</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 0</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer provided by the LLM is factually incorrect. Kyoto used to be the capital, but Tokyo is the capital of Japan now.</div></td>
+        </tr>
+        
+        <tr>
+          <td>5</td>
+          <td>Who discovered penicillin?</td>
+          <td>Penicillin was discovered by Alexander Fleming.</td>
+          <td>Louis Pasteur</td>
+          <td>0.16</td>
+          <td>0.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 0</div><div><span class="metrics-key">Completeness:</span> 0</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 0</div><div><span class="metrics-key">Relevance:</span> 0</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The response provides a clear and concise answer, but it is factually incorrect. Louis Pasteur is known for his work on pasteurization and germ theory, not the discovery of penicillin.</div></td>
+        </tr>
+        
+        <tr>
+          <td>6</td>
+          <td>What is the chemical symbol for gold?</td>
+          <td>The chemical symbol for gold is Au.</td>
+          <td>Ag</td>
+          <td>0.26</td>
+          <td>0.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 0</div><div><span class="metrics-key">Completeness:</span> 0</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 0</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The response is incorrect. The chemical symbol for gold is Au, not Ag. Ag is the chemical symbol for silver.</div></td>
+        </tr>
+        
+        <tr>
+          <td>7</td>
+          <td>What is the capital of Australia?</td>
+          <td>The capital of Australia is Canberra.</td>
+          <td>Sydney</td>
+          <td>0.60</td>
+          <td>0.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 0</div><div><span class="metrics-key">Completeness:</span> 0</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 0</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer is incorrect. The capital of Australia is Canberra, not Sydney.</div></td>
+        </tr>
+        
+        <tr>
+          <td>8</td>
+          <td>What is the freezing point of water in Celsius?</td>
+          <td>The freezing point of water is 0°C.</td>
+          <td>Around zero degrees</td>
+          <td>0.50</td>
+          <td>1.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 9</div><div><span class="metrics-key">Completeness:</span> 8</div><div><span class="metrics-key">Clarity:</span> 9</div><div><span class="metrics-key">Hallucination:</span> 10</div><div><span class="metrics-key">Faithfulness:</span> 9</div><div><span class="metrics-key">Relevance:</span> 10</div><div><span class="metrics-key">Conciseness:</span> 9</div><div class="metrics-comments">The response is close, but lacks the specific 0°C answer. It could be more precise.</div></td>
+        </tr>
+        
+        <tr>
+          <td>9</td>
+          <td>Who was the first person to walk on the moon?</td>
+          <td>The first person to walk on the moon was Neil Armstrong.</td>
+          <td>An American astronaut</td>
+          <td>0.42</td>
+          <td>0.50</td>
+          <td><div><span class="metrics-key">Correctness:</span> 7</div><div><span class="metrics-key">Completeness:</span> 3</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 0</div><div><span class="metrics-key">Faithfulness:</span> 10</div><div><span class="metrics-key">Relevance:</span> 7</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The response is correct but not complete. It gives a characteristic of the person who walked on the moon but not the person's name.</div></td>
+        </tr>
+        
+        <tr>
+          <td>10</td>
+          <td>What is the square root of 144?</td>
+          <td>The square root of 144 is 12.</td>
+          <td>It is a two-digit number</td>
+          <td>0.22</td>
+          <td>0.00</td>
+          <td><div><span class="metrics-key">Correctness:</span> 0</div><div><span class="metrics-key">Completeness:</span> 0</div><div><span class="metrics-key">Clarity:</span> 10</div><div><span class="metrics-key">Hallucination:</span> 0</div><div><span class="metrics-key">Faithfulness:</span> 0</div><div><span class="metrics-key">Relevance:</span> 0</div><div><span class="metrics-key">Conciseness:</span> 10</div><div class="metrics-comments">The answer is not correct and does not answer the question.</div></td>
+        </tr>
+        
+      </tbody>
+    </table>
+    </body>
+    </html>
+    
