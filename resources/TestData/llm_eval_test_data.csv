@@ -1,6 +1,6 @@
 question,expected_answer,llm_response
-What is the capital of France?,The capital of France is Paris.,Paris
+Can lambdas return a value ?,"Yes, lambdas can return a value. The type of the return value will be inferred by the compiler. The return statement is not required if the lambda body is just a one-liner",Lambdas may return a value. The type of the return value will be inferred by compiler. The return statement is not required if the lambda body is just a one-liner.
 Who wrote the play 'Hamlet'?,'Hamlet' was written by William Shakespeare.,William Shakespeare
 What is the largest planet in our Solar System?,The largest planet in our Solar System is Jupiter.,Jupiter
-What is the capital of Japan?,The capital of Japan is Tokyo.,Kyoto
+Is selenium used for automation testing ?,"Yes, Selenium is widely used for automation testing of web applications.Selenium is an open-source framework that allows you to automate web browser actions, such as clicking buttons, filling forms, and verifying content.",Selenium is widely used for automation testing of web applications.Selenium is an open-source framework that allows you to automate web browser actions
 Who discovered penicillin?,Penicillin was discovered by Alexander Fleming.,Louis Pasteur
