@@ -3,6 +3,8 @@ import json
 import re
 import time
 
+import cohere
+import httpx
 import pandas as pd
 from dotenv import load_dotenv
 from google.api_core.exceptions import ResourceExhausted
@@ -22,6 +24,11 @@ load_dotenv()
 #  LLM PROVIDER WRAPPER — plug & play
 # ==========================================================
 def call_llm(provider, model_name, prompt, retries=5, wait_seconds=15):
+
+    print("Using Provider : ",provider)
+    print("Using Model : ",model_name)
+    # print("Using Prompt : ",prompt)
+
     provider = provider.lower()
 
     if provider == "gemini":
@@ -63,8 +70,32 @@ def call_llm(provider, model_name, prompt, retries=5, wait_seconds=15):
         )
         return resp.choices[0].message["content"]
 
+    elif provider == "cohere":
+        original_client_init = httpx.Client.__init__
+
+        def client_init_no_ssl(self, *args, **kwargs):
+            kwargs["verify"] = False  # force verify=False
+            original_client_init(self, *args, **kwargs)
+
+        try:
+            # Patch httpx.Client.__init__ to disable SSL verify for Cohere client only
+            httpx.Client.__init__ = client_init_no_ssl
+
+            co = cohere.Client(api_key=os.getenv("COHERE_API_KEY"))
+
+            resp = co.chat(
+                model=model_name,
+                message=prompt
+            )
+            return resp.text
+
+        finally:
+            # Restore original Client.__init__
+            httpx.Client.__init__ = original_client_init
+
     else:
         raise ValueError(f"Unknown LLM provider: {provider}")
+
 
 # ==========================================================
 # Load test data (CSV or JSON)
@@ -108,6 +139,8 @@ for idx, row in df.iterrows():
     Return ONLY a number between 0 and 1.
     """
     reasoning_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), reasoning_prompt)
+    # reasoning_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), reasoning_prompt)
+
     try:
         reasoning_score = float(reasoning_eval.strip())
     except ValueError:
@@ -132,6 +165,8 @@ for idx, row in df.iterrows():
     - comments: short constructive feedback
     """
     metrics_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), metrics_prompt)
+    # metrics_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), metrics_prompt)
+
     raw_text = metrics_eval.strip()
 
     if raw_text.startswith("```"):
