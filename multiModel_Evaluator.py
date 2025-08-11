@@ -107,9 +107,9 @@ for idx, row in df.iterrows():
     Rate the LLM response on a scale of 0 to 1 for correctness, factuality, and relevance.
     Return ONLY a number between 0 and 1.
     """
-    gemini_eval = call_llm("gemini", "gemini-2.0-flash-lite", reasoning_prompt)
+    reasoning_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), reasoning_prompt)
     try:
-        reasoning_score = float(gemini_eval.strip())
+        reasoning_score = float(reasoning_eval.strip())
     except ValueError:
         reasoning_score = 0.0
 
