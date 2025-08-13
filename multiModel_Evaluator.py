@@ -148,21 +148,71 @@ for idx, row in df.iterrows():
 
     # Detailed Metrics
     metrics_prompt = f"""
-    You are an evaluator. Analyze the given LLM response.
-
-    Question: {question}
-    Expected Answer: {expected_answer}
-    LLM Response: {llm_response}
-
-    Evaluate the response and return ONLY valid JSON with:
-    - correctness: integer 0-10
-    - completeness: integer 0-10
-    - clarity: integer 0-10
-    - hallucination: integer 0-10
-    - faithfulness: integer 0-10
-    - relevance: integer 0-10
-    - conciseness: integer 0-10
-    - comments: short constructive feedback
+    "You are an expert evaluator. For the following task, compare the LLM's response to the expected answer."
+    "\nEvaluate the response using these metrics and detailed instructions, then output ONLY valid JSON in this format:"
+    "\n\n"
+    "## Metric Scoring Guidelines:\n"
+    "1. correctness (integer 0-10):\n"
+    "   - 10: Fully factually correct and error-free.\n"
+    "   - 7-9: Mostly correct, but with minor factual inaccuracy(s).\n"
+    "   - 4-6: Partially correct, with significant fact missing or slightly wrong.\n"
+    "   - 1-3: Mostly incorrect, only a small aspect is accurate.\n"
+    "   - 0: Entirely incorrect.\n"
+    "\n"
+    "2. completeness (integer 0-10):\n"
+    "   - 10: All key points of expected answer fully present.\n"
+    "   - 7-9: Covers main points, minor details missing.\n"
+    "   - 4-6: Some main points present, but important aspects missing.\n"
+    "   - 1-3: Very incomplete, only a small part addressed.\n"
+    "   - 0: No meaningful answer.\n"
+    "\n"
+    "3. clarity (integer 0-10):\n"
+    "   - 10: Extremely clear and easy to understand, no ambiguity or confusion.\n"
+    "   - 7-9: Generally clear, possible minor awkwardness.\n"
+    "   - 4-6: Adequate but somewhat unclear, awkward, or verbose.\n"
+    "   - 1-3: Hard to follow, confusing, or poorly worded.\n"
+    "   - 0: Completely unclear.\n"
+    "\n"
+    "4. hallucination (integer 0-10): (Here, LOWER is BETTER)\n"
+    "   - 0: No hallucination, everything is well supported and factual.\n"
+    "   - 1-2: Perhaps one minor unsupported or speculative element.\n"
+    "   - 3-5: More than one unsupported/made-up detail.\n"
+    "   - 6-9: Much of the content is invented or not based on source/ground truth.\n"
+    "   - 10: Entirely made up or contradicts known facts.\n"
+    "\n"
+    "5. faithfulness (integer 0-10):\n"
+    "   - 10: Stays fully true to input, context, and facts.\n"
+    "   - 7-9: Mostly faithful, minor deviation.\n"
+    "   - 4-6: Noticeable deviation or addition.\n"
+    "   - 1-3: Largely unfaithful, much is not in context.\n"
+    "   - 0: Entirely ignores the input/context.\n"
+    "\n"
+    "6. relevance (integer 0-10):\n"
+    "   - 10: Entirely focused on the question/task.\n"
+    "   - 7-9: Relevant with slight off-topic info.\n"
+    "   - 4-6: Relevant in parts, with distracting/unrelated elements.\n"
+    "   - 1-3: Mainly irrelevant.\n"
+    "   - 0: Not relevant at all.\n"
+    "\n"
+    "7. conciseness (integer 0-10):\n"
+    "   - 10: Perfectly succinct, direct, and without redundancy.\n"
+    "   - 7-9: Slight extra wording, but still concise.\n"
+    "   - 4-6: Acceptable, but has unnecessary filler/repetition.\n"
+    "   - 1-3: Wordy, repetitive, or rambling.\n"
+    "   - 0: Extremely verbose with no conciseness.\n"
+    "\n"
+    "8. comments (string):\n"
+    "   - Always provide at least one short constructive comment.\n"
+    "   - For low scores, explain which points are incorrect, missing, unclear, hallucinated, etc.\n"
+    "\n"
+    "## Output requirements:\n"
+    "- Return ONLY valid JSON (no extra text).\n"
+    "- For each metric field, use the given keys and score ranges exactly.\n"
+    "- For completeness, if any part of the expected answer is missing in the response, mention what is missing in 'comments'.\n"
+    "\n"
+    f"Question: {question}\n"
+    f"Expected Answer: {expected_answer}\n"
+    f"LLM Response: {llm_response}\n"
     """
     metrics_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), metrics_prompt)
     # metrics_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), metrics_prompt)

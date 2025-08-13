@@ -1,6 +1,6 @@
 from .basePage import BasePage
-from RAGGeminiEvaluator import evaluate_single_question
-from RAGEvaluator_localFreeModel import evaluate_dataset_localModel
+from RAGAS_GeminiEvaluator import evaluate_single_question
+from RAGAS_Evaluator_localFreeModel import evaluate_dataset_localModel
 import time
 
 class HomePage(BasePage):
