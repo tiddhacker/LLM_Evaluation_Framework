@@ -1,4 +1,7 @@
 import os
+
+from sklearn.metrics.pairwise import cosine_similarity
+
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = ""
 from dotenv import load_dotenv
@@ -18,7 +21,7 @@ from ragas.metrics import (
     answer_correctness
 )
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma                                                     # <---- ADDED
+from langchain_chroma import Chroma
 
 
 # Load environment variables from .env file
@@ -66,8 +69,7 @@ def get_llm_and_metrics():
     creds, _ = google.auth.default()
     print("Resolved credentials path:", creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
 
-    llm = VertexAI(model_name=os.getenv("GEMINI_MODEL_NAME"), credentials=creds)
-    wrapper = LangchainLLMWrapper(llm)
+    wrapper = LangchainLLMWrapper(VertexAI(model_name=os.getenv("GEMINI_MODEL_NAME"), credentials=creds))
 
     class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
         async def embed_text(self, text: str) -> list[float]:
@@ -154,3 +156,33 @@ async def evaluate_single_question(question, answer, reference):
         print("No evaluation completed.")
 
     return results_set
+
+#===================================================================
+#======================CHECK CONSISTENCY============================
+#===================================================================
+
+async def check_consistency(answers: list[str], n_runs=3):
+    """
+    Check consistency between multiple answers for the same question.
+    - answers: list of candidate answers (strings)
+    - n_runs: how many answers to check
+    """
+    print("Initializing embeddings...")
+    _, embeddings, _ = get_llm_and_metrics()
+
+    if len(answers) < n_runs:
+        raise ValueError(f"Need at least {n_runs} answers, but got {len(answers)}")
+
+    # Take only the first n_runs answers
+    selected_answers = answers[:n_runs]
+
+    # Embed all answers
+    embedded = embeddings.embed_documents(selected_answers)
+
+    # Compute pairwise cosine similarities
+    sims = []
+    for i in range(len(embedded)):
+        for j in range(i + 1, len(embedded)):
+            sims.append(cosine_similarity([embedded[i]], [embedded[j]])[0][0])
+
+    return sum(sims) / len(sims) if sims else 1.0
