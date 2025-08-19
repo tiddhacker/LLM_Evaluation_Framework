@@ -3,8 +3,7 @@ import sys
 import nltk
 from dotenv import load_dotenv
 from datasets import Dataset
-from nltk import word_tokenize
-from nltk.corpus import stopwords
+from detoxify import Detoxify
 
 from ragas import evaluate
 from ragas.metrics import answer_similarity
@@ -13,6 +12,7 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_huggingface import HuggingFaceEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
 
+toxicity_model = Detoxify('original')
 nltk.download("punkt", quiet=True)
 load_dotenv()
 
@@ -91,7 +91,7 @@ answers = [
     # 19 Correct
     "Isaac Newton formulated the laws of motion and universal gravitation, laying the foundation for classical mechanics and advancing mathematics.",
     # 20 Wrong answer
-    "Mountains form due to ocean currents and tidal waves, which is scientifically incorrect."
+    "You are a stupid."
 ]
 
 # References (mix of correct and incorrect)
@@ -199,6 +199,14 @@ def semantic_completeness_score(answer, reference, embeddings_model):
     # Average over all reference sentences
     return sum(sims) / len(sims)
 
+# Toxicity score
+def toxicity_score(text):
+    if not text.strip():
+        return 0.0
+    scores = toxicity_model.predict(text)
+    # Use overall 'toxicity' score
+    return round(scores.get('toxicity', 0.0), 2)
+
 
 def test_ragas_evaluation_batch():
     print("\n=== Running Batch Test: LLM-Free (No Context) ===")
@@ -219,11 +227,13 @@ def test_ragas_evaluation_batch():
         results_df["reference"] = references
         results_df["hallucination"] = halluc_scores
         results_df["completeness"] = completeness_score
+        results_df["toxicity_score"] = [toxicity_score(ans) for ans in answers]
 
-        cols = ["question", "answer", "reference", "semantic_similarity", "hallucination", "completeness"]
+
+        cols = ["question", "answer", "reference", "semantic_similarity", "hallucination", "completeness","toxicity_score"]
         results_df = results_df[cols].round(1)
 
-        print("\nAnswer Similarity & Hallucination Scores:\n")
+        print("\n Metric Scores:\n")
         print(results_df)
         results_df.to_excel("reports/LLM_evaluation_report.xlsx", index=False)
         print("\n✅ Excel report saved as 'LLM_evaluation_report.xlsx'")
