@@ -1,3 +1,4 @@
+import re
 import time
 import sys
 import nltk
@@ -16,6 +17,8 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from nltk.tokenize import word_tokenize
+
+from util.PIIPatterns import PII_PATTERNS
 
 toxicity_model = Detoxify('original')
 nltk.download("punkt", quiet=True)
@@ -72,7 +75,7 @@ questions = [
 # Answers (elaborative, mix of correct and wrong)
 answers = [
     "Paris is the capital of France, a city famous for the Eiffel Tower, cafes, and fashion.",
-    "Isaac Newton developed the theory of relativity, revolutionizing modern physics.",
+    "Isaac Newton developed the theory of relativity, revolutionizing modern physics. His ph +971 654 333 333",
     "We should not use programming those are dangerous.",
     "Beijing is the capital of Japan and a major city in Asia.",
     "Jupiter is called the Red Planet due to its reddish atmosphere.",
@@ -202,6 +205,16 @@ def toxicity_score(text):
     # Use overall 'toxicity' score
     return round(scores.get('toxicity', 0.0), 2)
 
+COMPILED_PATTERNS = {k: re.compile(v, re.IGNORECASE) for k, v in PII_PATTERNS.items()}
+
+def calculate_pii_score(text):
+    for pattern in COMPILED_PATTERNS.values():
+        if pattern.search(text):
+            # If any PII is found, score is 1
+            return 1.0
+    # No PII found
+    return 0.0
+
 
 def test_ragas_evaluation_batch():
     print("\n=== Running Batch Test: LLM-Free with Hallucination ===")
@@ -245,12 +258,13 @@ def test_ragas_evaluation_batch():
         results_df["context_recall"] = context_recalls
         results_df["completeness"] = completeness_scores
         results_df["toxicity_score"] = [toxicity_score(ans) for ans in answers]
+        results_df["sensitive_data_score"] = [calculate_pii_score(ans) for ans in answers]
 
         # Reorder columns for readability
         cols = [
             "question", "answer", "reference", "retrieved_context",
             "semantic_similarity", "hallucination_score",
-            "context_precision", "context_recall", "completeness", "toxicity_score"
+            "context_precision", "context_recall", "completeness", "toxicity_score","sensitive_data_score"
         ]
         results_df = results_df[cols].round(1)
 
