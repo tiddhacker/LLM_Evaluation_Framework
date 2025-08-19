@@ -1,5 +1,5 @@
 from .basePage import BasePage
-from RAGAS_GeminiEvaluator import evaluate_single_question
+from LLM_RAG_GeminiEvaluator import evaluate_single_question
 import time
 
 class HomePage(BasePage):
