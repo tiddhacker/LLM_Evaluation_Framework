@@ -3,6 +3,8 @@ import sys
 import nltk
 from dotenv import load_dotenv
 from datasets import Dataset
+from nltk import word_tokenize
+from nltk.corpus import stopwords
 
 from ragas import evaluate
 from ragas.metrics import answer_similarity
@@ -171,6 +173,33 @@ def embedding_hallucination(answer, reference, embeddings_model):
     halluc_score = 1 - sim
     return halluc_score
 
+
+def semantic_completeness_score(answer, reference, embeddings_model):
+    """
+    Computes a completeness score (0-1) based on semantic similarity of answer vs reference.
+    """
+    from nltk.tokenize import sent_tokenize
+    # Split into sentences
+    ref_sents = sent_tokenize(reference)
+    ans_sents = sent_tokenize(answer)
+
+    if not ref_sents:
+        return 1.0
+
+    # Embed all sentences
+    ref_embs = embeddings_model.embed_documents(ref_sents)
+    ans_embs = embeddings_model.embed_documents(ans_sents)
+
+    # For each reference sentence, find max similarity in answer sentences
+    sims = []
+    for r_emb in ref_embs:
+        max_sim = max(cosine_similarity([r_emb], ans_embs)[0])
+        sims.append(max_sim)
+
+    # Average over all reference sentences
+    return sum(sims) / len(sims)
+
+
 def test_ragas_evaluation_batch():
     print("\n=== Running Batch Test: LLM-Free (No Context) ===")
     results_df = evaluate_with_retries_batch(dataset, wrapped_embeddings, metrics)
@@ -180,14 +209,19 @@ def test_ragas_evaluation_batch():
         for ans, ref in zip(answers, references)
     ]
 
+    completeness_score = [
+        semantic_completeness_score(ans, ref, wrapped_embeddings) for ans, ref in zip(answers, references)
+    ]
+
     if results_df is not None and not results_df.empty:
-        results_df["hallucination_score"] = halluc_scores
         results_df["question"] = questions
         results_df["answer"] = answers
         results_df["reference"] = references
+        results_df["hallucination"] = halluc_scores
+        results_df["completeness"] = completeness_score
 
-        cols = ["question", "answer", "reference", "semantic_similarity", "hallucination_score"]
-        results_df = results_df[cols]
+        cols = ["question", "answer", "reference", "semantic_similarity", "hallucination", "completeness"]
+        results_df = results_df[cols].round(1)
 
         print("\nAnswer Similarity & Hallucination Scores:\n")
         print(results_df)

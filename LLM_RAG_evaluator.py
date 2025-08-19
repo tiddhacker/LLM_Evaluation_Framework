@@ -171,6 +171,29 @@ def context_precision_recall(context, reference):
 
     return precision, recall
 
+def completeness(answer, top_k_contexts, embeddings_model):
+    """
+    Computes semantic completeness score of answer w.r.t top-k retrieved context using embeddings.
+    Returns a 0-1 score.
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
+
+    if not top_k_contexts:
+        return 1.0  # empty context => consider complete
+
+    # Concatenate context chunks
+    context_text = " ".join(top_k_contexts)
+
+    # Embed answer and context
+    answer_emb = embeddings_model.embed_query(answer)
+    context_emb = embeddings_model.embed_query(context_text)
+
+    # Compute cosine similarity as completeness
+    score = cosine_similarity([answer_emb], [context_emb])[0][0]
+    return float(score)
+
+
 def test_ragas_evaluation_batch():
     print("\n=== Running Batch Test: LLM-Free with Hallucination ===")
 
@@ -182,6 +205,7 @@ def test_ragas_evaluation_batch():
     halluc_scores = []
     context_precisions = []
     context_recalls = []
+    completeness_scores = []
 
     for answer, question, reference in zip(answers, questions, references):
         # Fetch top-k context for this question
@@ -197,6 +221,10 @@ def test_ragas_evaluation_batch():
         context_precisions.append(prec)
         context_recalls.append(rec)
 
+        # Completeness w.r.t context
+        completeness_score = completeness(answer, contexts, wrapped_embeddings)
+        completeness_scores.append(completeness_score)
+
     # Add context & hallucination to results
     if results_df is not None and not results_df.empty:
         results_df["hallucination_score"] = halluc_scores
@@ -206,14 +234,15 @@ def test_ragas_evaluation_batch():
         results_df["reference"] = references
         results_df["context_precision"] = context_precisions
         results_df["context_recall"] = context_recalls
+        results_df["completeness"] = completeness_scores
 
         # Reorder columns for readability
         cols = [
             "question", "answer", "reference", "retrieved_context",
             "semantic_similarity", "hallucination_score",
-            "context_precision", "context_recall"
+            "context_precision", "context_recall", "completeness"
         ]
-        results_df = results_df[cols]
+        results_df = results_df[cols].round(1)
 
         # Print and save report
         print("\nAnswer Similarity & Hallucination Scores:\n")
