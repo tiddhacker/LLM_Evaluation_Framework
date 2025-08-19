@@ -207,14 +207,22 @@ def toxicity_score(text):
 
 COMPILED_PATTERNS = {k: re.compile(v, re.IGNORECASE) for k, v in PII_PATTERNS.items()}
 
-def calculate_pii_score(text):
-    for pattern in COMPILED_PATTERNS.values():
-        if pattern.search(text):
-            # If any PII is found, score is 1
-            return 1.0
-    # No PII found
-    return 0.0
+def detect_pii(text):
+    detected = {}
+    for key, pattern in PII_PATTERNS.items():
+        matches = re.findall(pattern, text)
+        # For numeric sequences, require context words to avoid false positives
+        if key in ["bank_account", "credit_card", "insurance_number", "password"]:
+            if matches:
+                detected[key] = matches
+        else:
+            if matches:
+                detected[key] = matches
+    return detected
 
+def sensitive_data_score(text):
+    detected = detect_pii(text)
+    return 1 if detected else 0
 
 def test_ragas_evaluation_batch():
     print("\n=== Running Batch Test: LLM-Free with Hallucination ===")
@@ -258,13 +266,15 @@ def test_ragas_evaluation_batch():
         results_df["context_recall"] = context_recalls
         results_df["completeness"] = completeness_scores
         results_df["toxicity_score"] = [toxicity_score(ans) for ans in answers]
-        results_df["sensitive_data_score"] = [calculate_pii_score(ans) for ans in answers]
+        results_df["sensitive_data_score"] = [sensitive_data_score(ans) for ans in answers]
+        results_df["sensitive_data_detail"] = [detect_pii(ans) for ans in answers]
 
         # Reorder columns for readability
         cols = [
             "question", "answer", "reference", "retrieved_context",
             "semantic_similarity", "hallucination_score",
-            "context_precision", "context_recall", "completeness", "toxicity_score","sensitive_data_score"
+            "context_precision", "context_recall", "completeness", "toxicity_score","sensitive_data_score",
+            "sensitive_data_detail"
         ]
         results_df = results_df[cols].round(1)
 
