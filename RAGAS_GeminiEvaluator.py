@@ -21,7 +21,7 @@ from ragas.metrics import (
     answer_correctness
 )
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
+from langchain_chroma import Chroma                                                     # <---- ADDED
 
 
 # Load environment variables from .env file
@@ -69,7 +69,8 @@ def get_llm_and_metrics():
     creds, _ = google.auth.default()
     print("Resolved credentials path:", creds._service_account_email if hasattr(creds, '_service_account_email') else creds)
 
-    wrapper = LangchainLLMWrapper(VertexAI(model_name=os.getenv("GEMINI_MODEL_NAME"), credentials=creds))
+    llm = VertexAI(model_name=os.getenv("GEMINI_MODEL_NAME"), credentials=creds)
+    wrapper = LangchainLLMWrapper(llm)
 
     class RAGASVertexAIEmbeddings(VertexAIEmbeddings):
         async def embed_text(self, text: str) -> list[float]:

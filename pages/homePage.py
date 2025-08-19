@@ -1,6 +1,5 @@
 from .basePage import BasePage
 from RAGAS_GeminiEvaluator import evaluate_single_question
-from RAGAS_Evaluator_localFreeModel import evaluate_dataset_localModel
 import time
 
 class HomePage(BasePage):
@@ -31,13 +30,13 @@ class HomePage(BasePage):
         # await generateEvaluationReport("testReport", result_set)
 
 
-    async def testLLM_localModel(self, question, answer, reference):
-        # Step 1: Evaluate using local model
-        start_time = time.time()
-        result_set= await evaluate_dataset_localModel(question, answer, reference)
-        elapsed = time.time() - start_time
-        print(f"\nEvaluation completed in {elapsed:.2f} seconds")
-        return result_set
-
-        # Step 2: Generate full report
-        # await generateEvaluationReport("testReport", result_set)
+    # async def testLLM_localModel(self, question, answer, reference):
+    #     # Step 1: Evaluate using local model
+    #     start_time = time.time()
+    #     result_set= await evaluate_dataset_localModel(question, answer, reference)
+    #     elapsed = time.time() - start_time
+    #     print(f"\nEvaluation completed in {elapsed:.2f} seconds")
+    #     return result_set
+    #
+    #     # Step 2: Generate full report
+    #     # await generateEvaluationReport("testReport", result_set)
