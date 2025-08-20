@@ -1,23 +1,25 @@
 import re
 import time
-import sys
 import nltk
 from dotenv import load_dotenv
-from datasets import Dataset
 from detoxify import Detoxify
 from nltk import word_tokenize
 
 from ragas import evaluate
-from ragas.metrics import answer_similarity
-from ragas.embeddings import LangchainEmbeddingsWrapper
 
-from langchain_huggingface import HuggingFaceEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
 
 from util.PIIPatterns import PII_PATTERNS
 
 toxicity_model = Detoxify('original')
-nltk.download("punkt", quiet=True)
+nltk.download("punkt", download_dir="resources/nltk_data")
+nltk.download("punkt_tab", download_dir="resources/nltk_data")
+nltk.download("stopwords", download_dir="resources/nltk_data")
+nltk.download("wordnet", download_dir="resources/nltk_data")
+
+#look for NLTK in below location
+nltk.data.path.append("resources/nltk_data")
+
 load_dotenv()
 
 #==================================================================

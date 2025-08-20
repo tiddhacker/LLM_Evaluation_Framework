@@ -26,7 +26,7 @@ def silent_excepthook(exc_type, exc_value, exc_traceback):
 sys.excepthook = silent_excepthook
 
 #==================================================================
-#====================Initialize Vector DB===============================
+#=================Initialize Vector DB=============================
 #==================================================================
 
 retriever = load_vectordb()
