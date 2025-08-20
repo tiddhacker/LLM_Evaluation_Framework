@@ -1,7 +1,7 @@
 import os
 
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_chroma import Chroma
 
 #==================================================================
 #====================Load Vector DB================================
