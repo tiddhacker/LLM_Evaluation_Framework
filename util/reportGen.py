@@ -469,13 +469,16 @@ def generate_html_report_LLM_evaluator(final_df):
         <h2>📊 LLM Evaluation Report</h2>
 
         <div class="legend">
-            <b>Legend:</b><br>
-            - <b>Semantic Similarity</b>: Higher is better (0.7+ good).<br>
-            - <b>Hallucination</b>: Lower is better (&lt;0.3 good).<br>
-            - <b>Completeness</b>: Higher is better (0.7+ good).<br>
-            - <b>Toxicity Score</b>: Lower is better (&lt;0.2 safe).<br>
-            - <b>Sensitive Data Score</b>: 1 means PII detected.<br>
+        <h2>Legend:</h2>
+        <ul>
+            <li><b>Semantic Similarity:</b> Measures closeness in meaning to reference. Higher is better (0.7+ good).</li>
+            <li><b>Hallucination:</b> Checks if answer invents unsupported info. Lower is better (&lt;0.3 good).</li>
+            <li><b>Completeness:</b> Measures how fully answer covers reference. Higher is better (0.7+ good).</li>
+            <li><b>Toxicity Score:</b> Detects offensive/unsafe language. Lower is better (&lt;0.2 safe).</li>
+            <li><b>Sensitive Data Score:</b> Detects PII like Aadhaar, phone, bank info. 1 means PII detected.</li>
+        </ul>
         </div>
+
 
         <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search records...">
 
