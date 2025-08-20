@@ -316,3 +316,185 @@ def generate_html_reportRag(df, output_file="evaluation_report.html"):
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
 
+
+def generate_html_report_LLM_evaluator(final_df):
+    # Normalize column names
+    final_df = final_df.rename(columns={
+        "sensitive_data_detail": "Sensitive Data Detail",
+        "sensitive_data_score": "Sensitive Data Score",
+        "semantic_similarity": "Semantic Similarity",
+        "hallucination": "Hallucination",
+        "completeness": "Completeness",
+        "toxicity_score": "Toxicity Score",
+    })
+
+    # Replace {} or [] with blank
+    if "Sensitive Data Detail" in final_df.columns:
+        final_df["Sensitive Data Detail"] = final_df["Sensitive Data Detail"].apply(
+            lambda x: "" if str(x).strip() in ["{}", "[]"] else str(x)
+        )
+
+    # Apply red/orange highlighting based on thresholds
+    def highlight(val, col):
+        try:
+            v = float(val)
+            if col == "Semantic Similarity":
+                if v < 0.4: return 'class="poor"'
+                elif v < 0.7: return 'class="medium"'
+            elif col == "Hallucination":
+                if v > 0.6: return 'class="poor"'
+                elif v > 0.3: return 'class="medium"'
+            elif col == "Completeness":
+                if v < 0.4: return 'class="poor"'
+                elif v < 0.7: return 'class="medium"'
+            elif col == "Toxicity Score":
+                if v > 0.6: return 'class="poor"'
+                elif v > 0.2: return 'class="medium"'
+        except:
+            return ""
+        return ""
+
+    # Build HTML table manually with highlights + row numbers
+    headers = ["#"] + final_df.columns.tolist()
+    rows_html = ""
+    for idx, row in final_df.iterrows():
+        row_html = f"<tr><td>{idx+1}</td>"  # row numbers
+        for col in final_df.columns:
+            cell_val = row[col]
+            attr = highlight(cell_val, col)
+            row_html += f"<td {attr}>{cell_val}</td>"
+        row_html += "</tr>"
+        rows_html += row_html
+
+    # HTML Template with modern CSS
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: 'Segoe UI', Tahoma, sans-serif;
+                margin: 20px;
+                background-color: #f8f9fa;
+            }}
+            h2 {{
+                text-align: center;
+                color: #333;
+                margin-bottom: 20px;
+            }}
+            .legend {{
+                margin-bottom: 20px;
+                padding: 12px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                background: #ffffff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }}
+            .table-container {{
+                max-height: 600px;
+                overflow-y: auto;
+                overflow-x: auto;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                background: #fff;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }}
+            table {{
+                border-collapse: collapse;
+                width: 100%;
+                table-layout: fixed;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 8px 10px;
+                text-align: left;
+                vertical-align: top;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }}
+            th {{
+                position: sticky;
+                top: 0;
+                background-color: #f2f4f7;
+                color: #333;
+                font-weight: bold;
+                text-align: center;
+                border-bottom: 2px solid #ddd;
+            }}
+            tr:nth-child(even) {{
+                background-color: #f9f9f9;
+            }}
+            tr:hover {{
+                background-color: #f1f7ff;
+            }}
+            .poor {{
+                background-color: #ffcccc !important;
+            }}
+            .medium {{
+                background-color: #ffd580 !important;
+            }}
+            #searchInput {{
+                margin-bottom: 10px;
+                padding: 10px;
+                width: 100%;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
+            }}
+        </style>
+        <script>
+            function filterTable() {{
+                var input, filter, table, tr, td, i, j, txtValue;
+                input = document.getElementById("searchInput");
+                filter = input.value.toLowerCase();
+                table = document.getElementById("resultTable");
+                tr = table.getElementsByTagName("tr");
+
+                for (i = 1; i < tr.length; i++) {{
+                    tr[i].style.display = "none";
+                    td = tr[i].getElementsByTagName("td");
+                    for (j = 0; j < td.length; j++) {{
+                        if (td[j]) {{
+                            txtValue = td[j].textContent || td[j].innerText;
+                            if (txtValue.toLowerCase().indexOf(filter) > -1) {{
+                                tr[i].style.display = "";
+                                break;
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        </script>
+    </head>
+    <body>
+        <h2>📊 LLM Evaluation Report</h2>
+
+        <div class="legend">
+            <b>Legend:</b><br>
+            - <b>Semantic Similarity</b>: Higher is better (0.7+ good).<br>
+            - <b>Hallucination</b>: Lower is better (&lt;0.3 good).<br>
+            - <b>Completeness</b>: Higher is better (0.7+ good).<br>
+            - <b>Toxicity Score</b>: Lower is better (&lt;0.2 safe).<br>
+            - <b>Sensitive Data Score</b>: 1 means PII detected.<br>
+        </div>
+
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search records...">
+
+        <div class="table-container">
+            <table id="resultTable">
+                <thead>
+                    <tr>{"".join(f"<th>{h}</th>" for h in headers)}</tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+
+    with open("reports/LLM_evaluation_report.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    print("\n✅ Beautiful HTML report saved as 'LLM_evaluation_report.html'")
+

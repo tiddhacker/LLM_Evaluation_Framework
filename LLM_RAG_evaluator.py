@@ -134,9 +134,6 @@ def evaluate_with_retries_batch(dataset, embeddings, metrics, max_retries=3, del
     print("Evaluation failed after retries.")
     return None
 
-# Hallucination calculation (embedding-based)
-model = SentenceTransformer('all-MiniLM-L6-v2')  # small & fast
-
 # Updated hallucination function
 def embedding_hallucination(answer, top_k_contexts, reference, embeddings_model):
     """
@@ -209,7 +206,7 @@ COMPILED_PATTERNS = {k: re.compile(v, re.IGNORECASE) for k, v in PII_PATTERNS.it
 
 def detect_pii(text):
     detected = {}
-    for key, pattern in PII_PATTERNS.items():
+    for key, pattern in COMPILED_PATTERNS.items():
         matches = re.findall(pattern, text)
         # For numeric sequences, require context words to avoid false positives
         if key in ["bank_account", "credit_card", "insurance_number", "password"]:
@@ -257,11 +254,12 @@ def test_ragas_evaluation_batch():
 
     # Add context & hallucination to results
     if results_df is not None and not results_df.empty:
-        results_df["hallucination_score"] = halluc_scores
-        results_df["retrieved_context"] = retrieved_contexts
         results_df["question"] = questions
         results_df["answer"] = answers
         results_df["reference"] = references
+        results_df["retrieved_context"] = retrieved_contexts
+
+        results_df["hallucination_score"] = halluc_scores
         results_df["context_precision"] = context_precisions
         results_df["context_recall"] = context_recalls
         results_df["completeness"] = completeness_scores
