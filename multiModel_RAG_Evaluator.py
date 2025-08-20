@@ -11,11 +11,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 from vertexai import init
 from vertexai.generative_models import GenerativeModel
-from util.reportGen import generate_html_report, generate_html_reportRag
+from util.reportGen import generate_html_reportRag
 
-# Updated imports for LangChain 0.2+ (no deprecation warnings)
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
+from util.vectorDB_util import load_vectordb
 
 # ==========================================================
 # Load environment variables
@@ -25,17 +23,6 @@ load_dotenv()
 # ==========================================================
 # VectorDB Loader
 # ==========================================================
-PERSIST_DIR = r"C:\Users\VM116ZZ\PycharmProjects\POC\vectordb"
-TOP_K = 3
-
-def load_vectordb():
-    embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
-    vectordb = Chroma(
-        collection_name="rag_contexts",
-        persist_directory=PERSIST_DIR,
-        embedding_function=embeddings,
-    )
-    return vectordb.as_retriever(search_kwargs={"k": TOP_K})
 
 retriever = load_vectordb()
 
@@ -155,8 +142,8 @@ for idx, row in df.iterrows():
     On a scale of 0 to 1, rate how factually faithful the LLM's response is to the provided context.
     Return ONLY a number between 0 and 1.
     """
-    # faithfulness_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), faithfulness_prompt)
-    faithfulness_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), faithfulness_prompt)
+    faithfulness_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), faithfulness_prompt)
+    # faithfulness_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), faithfulness_prompt)
 
     try:
         faithfulness_score = float(faithfulness_eval.strip())
@@ -173,8 +160,8 @@ for idx, row in df.iterrows():
     Considering the context, rate the LLM response on a scale of 0 to 1 for correctness, factuality, and relevance.
     Return ONLY a number between 0 and 1.
     """
-    # reasoning_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), reasoning_prompt)
-    reasoning_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), reasoning_prompt)
+    reasoning_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), reasoning_prompt)
+    # reasoning_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), reasoning_prompt)
 
     try:
         reasoning_score = float(reasoning_eval.strip())
@@ -200,8 +187,8 @@ for idx, row in df.iterrows():
     - conciseness: integer 0-10
     - comments: short constructive feedback
     """
-    # metrics_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), metrics_prompt)
-    metrics_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), metrics_prompt)
+    metrics_eval = call_llm("gemini", os.getenv("GEMINI_MODEL_NAME"), metrics_prompt)
+    # metrics_eval = call_llm("cohere", os.getenv("COHERE_MODEL_NAME"), metrics_prompt)
 
     raw_text = metrics_eval.strip()
     if raw_text.startswith("```"):

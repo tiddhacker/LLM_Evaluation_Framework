@@ -2,6 +2,8 @@ import os
 
 from sklearn.metrics.pairwise import cosine_similarity
 
+from util.vectorDB_util import load_vectordb
+
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = ""
 from dotenv import load_dotenv
@@ -20,9 +22,6 @@ from ragas.metrics import (
     faithfulness,
     answer_correctness
 )
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma                                                     # <---- ADDED
-
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,19 +42,6 @@ def silent_excepthook(exc_type, exc_value, exc_traceback):
         return
     print(f"Unhandled exception: {exc_value}")
 sys.excepthook = silent_excepthook
-
-PERSIST_DIR = r"C:\Users\VM116ZZ\PycharmProjects\POC\vectordb"
-TOP_K = 3
-# LOAD CHROMA AS RETRIEVER
-def load_vectordb():
-    embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
-    vectordb = Chroma(
-        collection_name="rag_contexts",
-        persist_directory=PERSIST_DIR,
-        embedding_function=embeddings,
-    )
-    return vectordb.as_retriever(search_kwargs={"k": TOP_K})
-
 
 def get_llm_and_metrics():
     import vertexai
@@ -122,7 +108,7 @@ async def evaluate_single_question(question, answer, reference):
     contexts = [doc.page_content for doc in retrieved_docs]
     source_docs = [doc.metadata.get("source", "") for doc in retrieved_docs]
 
-    print(f"\nTop-{TOP_K} retrieved context chunks for question: '{question}'")
+    print(f"\nTop-K Retrieved context chunks for question: '{question}'")
     for idx, doc in enumerate(retrieved_docs, start=1):
         print(f"  [{idx}] Source: {doc.metadata.get('source', '')}")
         print(f"      Chunk: {doc.page_content[:150]}...\n")  # printing only first 150 chars for readability
