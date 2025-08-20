@@ -39,7 +39,7 @@ def ingest_docs_to_chroma(file_paths):
         doc.metadata["doc_id"] = content_hash
 
     # 4) Load existing Chroma DB
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
     vectordb = Chroma(
         collection_name="rag_contexts",
         persist_directory=full_path,

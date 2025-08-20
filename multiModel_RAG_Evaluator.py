@@ -29,7 +29,7 @@ PERSIST_DIR = r"C:\Users\VM116ZZ\PycharmProjects\POC\vectordb"
 TOP_K = 3
 
 def load_vectordb():
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
     vectordb = Chroma(
         collection_name="rag_contexts",
         persist_directory=PERSIST_DIR,
@@ -122,7 +122,7 @@ def load_test_data(file_path):
 test_data_file = "resources/TestData/llm_eval_test_data.csv"
 df = load_test_data(test_data_file)
 
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+embedder = SentenceTransformer(os.getenv("EMBEDDING_MODEL_NAME"))
 
 for idx, row in df.iterrows():
     question = row["question"]

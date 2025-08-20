@@ -116,7 +116,7 @@ def load_test_data(file_path):
 test_data_file = "resources/TestData/llm_eval_test_data.csv"
 df = load_test_data(test_data_file)
 
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+embedder = SentenceTransformer(os.getenv("EMBEDDING_MODEL_NAME"))
 
 for idx, row in df.iterrows():
     question = row["question"]

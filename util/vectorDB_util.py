@@ -1,3 +1,5 @@
+import os
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 
@@ -8,7 +10,7 @@ PERSIST_DIR = r"C:\Users\VM116ZZ\PycharmProjects\POC\vectordb"
 TOP_K = 3
 
 def load_vectordb():
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
     vectordb = Chroma(
         collection_name="rag_contexts",
         persist_directory=PERSIST_DIR,

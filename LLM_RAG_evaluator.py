@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import pandas as pd
 from datasets import Dataset
@@ -37,8 +38,8 @@ def fetch_context(question):
 #==================================================================
 #====================LOAD EMBEDDINGS===============================
 #==================================================================
-hf_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-wrapped_embeddings = LangchainEmbeddingsWrapper(hf_embeddings)
+embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
+wrapped_embeddings = LangchainEmbeddingsWrapper(embeddings)
 
 #==================================================================
 #====================TEST DATA SAMPLE==============================

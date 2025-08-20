@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -28,8 +29,8 @@ sys.excepthook = silent_excepthook
 #==================================================================
 #====================LOAD EMBEDDINGS===============================
 #==================================================================
-hf_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-wrapped_embeddings = LangchainEmbeddingsWrapper(hf_embeddings)
+embeddings = HuggingFaceEmbeddings(model_name=os.getenv("EMBEDDING_MODEL_NAME"))
+wrapped_embeddings = LangchainEmbeddingsWrapper(embeddings)
 
 
 #==================================================================
