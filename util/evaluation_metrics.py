@@ -5,6 +5,7 @@ import nltk
 from dotenv import load_dotenv
 from datasets import Dataset
 from detoxify import Detoxify
+from nltk import word_tokenize
 
 from ragas import evaluate
 from ragas.metrics import answer_similarity
@@ -93,7 +94,64 @@ def semantic_completeness_score(answer, reference, embeddings_model):
 #==================================================================
 #================METRICS DEF FOR RAG LLM RESPONSES=================
 #==================================================================
+def embedding_hallucination_RAG(answer, top_k_contexts, reference, embeddings_model):
+    """
+    Compute hallucination score of an answer w.r.t. top-k context + reference embeddings.
+    Higher similarity → lower hallucination.
+    """
+    # Combine context chunks and reference into one list
+    grounding_texts = top_k_contexts + [reference]
 
+    # Embed the answer
+    answer_emb = embeddings_model.embed_documents([answer])[0]
+
+    # Embed all grounding texts
+    grounding_embs = embeddings_model.embed_documents(grounding_texts)
+
+    # Compute cosine similarities between answer and each grounding embedding
+    sims = [cosine_similarity([answer_emb], [g_emb])[0][0] for g_emb in grounding_embs]
+
+    # Average similarity
+    avg_sim = sum(sims) / len(sims) if sims else 0.0
+
+    # Hallucination score: 1 - average similarity
+    halluc_score = 1 - avg_sim
+    return halluc_score
+
+
+def context_precision_recall(context, reference):
+    # Simple word overlap
+    context_tokens = set(word_tokenize(" ".join(context).lower()))
+    reference_tokens = set(word_tokenize(reference.lower()))
+
+    true_positives = len(context_tokens & reference_tokens)
+
+    precision = true_positives / len(context_tokens) if context_tokens else 1.0
+    recall = true_positives / len(reference_tokens) if reference_tokens else 1.0
+
+    return precision, recall
+
+def completeness_RAG(answer, top_k_contexts, embeddings_model):
+    """
+    Computes semantic completeness score of answer w.r.t top-k retrieved context using embeddings.
+    Returns a 0-1 score.
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+    import numpy as np
+
+    if not top_k_contexts:
+        return 1.0  # empty context => consider complete
+
+    # Concatenate context chunks
+    context_text = " ".join(top_k_contexts)
+
+    # Embed answer and context
+    answer_emb = embeddings_model.embed_query(answer)
+    context_emb = embeddings_model.embed_query(context_text)
+
+    # Compute cosine similarity as completeness
+    score = cosine_similarity([answer_emb], [context_emb])[0][0]
+    return float(score)
 
 
 

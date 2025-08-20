@@ -11,7 +11,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 from util.evaluation_metrics import embedding_hallucination, semantic_completeness_score, toxicity_score, \
     sensitive_data_score, detect_pii, evaluate_with_retries_batch
-from util.reportGen import generate_html_report_LLM_evaluator
+from util.reportGen import html_report_LLM_evaluator
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -46,7 +46,7 @@ references = df["reference"].tolist()
 
 
 #==================================================================
-#====================Run Evaluation================================
+#====================Evaluation:Test Method========================
 #==================================================================
 metrics = [answer_similarity]
 def test_ragas_evaluation_batch():
@@ -81,13 +81,12 @@ def test_ragas_evaluation_batch():
             "sensitive_data_detail": [detect_pii(ans) for ans in answers]
         })
 
-        # return separately
         return base_df, metrics_df
 
     return None, None
 
 # ==================================================================
-# ==================== Run Evaluation & Save =======================
+# ================Run Evaluation & Report Gen=======================
 # ==================================================================
 base_df, metrics_df = test_ragas_evaluation_batch()
 
@@ -102,7 +101,7 @@ if base_df is not None:
     logging.info("\nExcel report saved as 'LLM_evaluation_report.xlsx'")
 
     #generate HTML report
-    generate_html_report_LLM_evaluator(final_df)
+    html_report_LLM_evaluator(final_df)
 
 else:
     logging.info("\nNo evaluation results generated!")
