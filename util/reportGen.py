@@ -519,7 +519,7 @@ def html_report_LLM_RAG_evaluator(final_df):
         "toxicity_score": "Toxicity Score",
         "context_precision": "Context Precision",
         "context_recall": "Context Recall",
-
+        "factual_consistency": "Factual Consistency"
     })
 
     #excluding column retrieved_context
@@ -538,7 +538,10 @@ def html_report_LLM_RAG_evaluator(final_df):
             v = float(val)
             if col == "Semantic Similarity":
                 if v < 0.4: return 'class="poor"'
-                elif v < 0.7: return 'class="medium"'
+                elif v < 0.75: return 'class="medium"'
+            elif col == "Factual Consistency":
+                if v < 0.4: return 'class="poor"'
+                elif v < 0.85: return 'class="medium"'
             elif col == "Hallucination":
                 if v > 0.6: return 'class="poor"'
                 elif v > 0.3: return 'class="medium"'
@@ -677,7 +680,8 @@ def html_report_LLM_RAG_evaluator(final_df):
         <div class="legend">
         <h2>Legend:</h2>
         <ul>
-            <li><b>Semantic Similarity:</b> Measures closeness in meaning to reference. Higher is better (0.7+ good).</li>
+            <li><b>Semantic Similarity:</b> Measures closeness in meaning to reference. Higher is better (0.75+ good).</li>
+            <li><b>Factual Consistency:</b> Measures the factual data in answers comparing it to reference. Higher is better (0.85+ good).</li>
             <li><b>Hallucination:</b> Checks if answer invents unsupported info (w.r.t. top-k context + reference). Lower is better (&lt;0.3 good).</li>
             <li><b>Completeness:</b> Measures how fully answer covers reference. Higher is better (0.7+ good).</li>
             <li><b>Context Precision:</b> Measures how much of the retrieved context is actually relevant to the reference. Higher is better (0.7+ good).</li>

@@ -10,7 +10,7 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from util.evaluation_metrics import toxicity_score, detect_pii, sensitive_data_score, embedding_hallucination_RAG, \
-    context_precision_recall, completeness_RAG, evaluate_with_retries_batch
+    context_precision_recall, completeness_RAG, evaluate_with_retries_batch, factual_consistency_score
 from util.reportGen import html_report_LLM_RAG_evaluator
 from util.vectorDB_util import load_vectordb
 
@@ -94,6 +94,7 @@ def test_ragas_evaluation_with_context():
         # --- Metrics block ---
         metrics_df = pd.DataFrame({
             "semantic_similarity": results_df["semantic_similarity"].round(2),
+            "factual_consistency": [factual_consistency_score(ans, ref) for ans, ref in zip(answers, references)],
             "hallucination": [round(x, 2) for x in halluc_scores],
             "completeness": [round(x, 2) for x in completeness_scores],
             "context_precision": [round(x, 2) for x in context_precisions],

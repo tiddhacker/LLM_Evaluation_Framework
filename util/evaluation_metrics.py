@@ -58,6 +58,55 @@ def sensitive_data_score(text):
     return 1 if detected else 0
 
 
+#Calculates factual data for LLM ans and LLM-RAG both
+def factual_consistency_score(answer: str, reference: str) -> float:
+    """
+    Factual consistency based on entity & number/date overlap.
+    Extra facts in the answer do NOT penalize; contradiction occurs only
+    when a critical entity present in the reference has NO overlap in the answer.
+    Returns 0..1
+    """
+    if not answer.strip() or not reference.strip():
+        return 0.0
+
+    ans_ents = _ents_by_label(answer)
+    ref_ents = _ents_by_label(reference)
+
+    # Helper: score 1 if there is overlap for that label, 0 if ref has but ans lacks all
+    def overlap_score(label: str) -> float:
+        if label not in ref_ents:
+            return 1.0  # nothing to check
+        if label not in ans_ents:
+            return 0.0  # missing all referenced entities of this type
+        return 1.0 if (ref_ents[label] & ans_ents[label]) else 0.0
+
+    # Critical entities: PERSON should strongly influence score; GPE moderate
+    person_score = overlap_score("PERSON")
+    gpe_score    = overlap_score("GPE")   # e.g., India
+
+    # DATE via NER: allow extra dates; require at least one overlap if ref has any
+    date_score   = overlap_score("DATE")
+
+    # Raw numbers & years: require at least one common value if ref has any
+    ans_nums  = set(NUMBER_PATTERN.findall(answer))
+    ref_nums  = set(NUMBER_PATTERN.findall(reference))
+    num_score = 1.0 if not ref_nums else (1.0 if (ans_nums & ref_nums) else 0.0)
+
+    ans_years  = set(YEAR_PATTERN.findall(answer))
+    ref_years  = set(YEAR_PATTERN.findall(reference))
+    year_score = 1.0 if not ref_years else (1.0 if (ans_years & ref_years) else 0.0)
+
+    # Weights: emphasize PERSON; keep others supportive
+    final = (
+        0.55 * person_score +
+        0.15 * date_score +
+        0.10 * year_score +
+        0.10 * gpe_score +
+        0.10 * num_score
+    )
+    return round(float(final), 2)
+
+
 #==================================================================
 #===================METRICS DEF FOR LLM RESPONSES==================
 #==================================================================
@@ -125,53 +174,6 @@ def _ents_by_label(text: str) -> dict[str, set[str]]:
         if names:
             out["PERSON"] = {_norm_person(n) for n in names}
     return out
-
-def factual_consistency_score(answer: str, reference: str) -> float:
-    """
-    Factual consistency based on entity & number/date overlap.
-    Extra facts in the answer do NOT penalize; contradiction occurs only
-    when a critical entity present in the reference has NO overlap in the answer.
-    Returns 0..1
-    """
-    if not answer.strip() or not reference.strip():
-        return 0.0
-
-    ans_ents = _ents_by_label(answer)
-    ref_ents = _ents_by_label(reference)
-
-    # Helper: score 1 if there is overlap for that label, 0 if ref has but ans lacks all
-    def overlap_score(label: str) -> float:
-        if label not in ref_ents:
-            return 1.0  # nothing to check
-        if label not in ans_ents:
-            return 0.0  # missing all referenced entities of this type
-        return 1.0 if (ref_ents[label] & ans_ents[label]) else 0.0
-
-    # Critical entities: PERSON should strongly influence score; GPE moderate
-    person_score = overlap_score("PERSON")
-    gpe_score    = overlap_score("GPE")   # e.g., India
-
-    # DATE via NER: allow extra dates; require at least one overlap if ref has any
-    date_score   = overlap_score("DATE")
-
-    # Raw numbers & years: require at least one common value if ref has any
-    ans_nums  = set(NUMBER_PATTERN.findall(answer))
-    ref_nums  = set(NUMBER_PATTERN.findall(reference))
-    num_score = 1.0 if not ref_nums else (1.0 if (ans_nums & ref_nums) else 0.0)
-
-    ans_years  = set(YEAR_PATTERN.findall(answer))
-    ref_years  = set(YEAR_PATTERN.findall(reference))
-    year_score = 1.0 if not ref_years else (1.0 if (ans_years & ref_years) else 0.0)
-
-    # Weights: emphasize PERSON; keep others supportive
-    final = (
-        0.55 * person_score +
-        0.15 * date_score +
-        0.10 * year_score +
-        0.10 * gpe_score +
-        0.10 * num_score
-    )
-    return round(float(final), 2)
 
 
 #==================================================================
