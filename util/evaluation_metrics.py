@@ -4,6 +4,9 @@ import nltk
 from dotenv import load_dotenv
 from detoxify import Detoxify
 from nltk import word_tokenize
+import spacy
+import os
+import en_core_web_sm
 
 from ragas import evaluate
 
@@ -93,6 +96,84 @@ def semantic_completeness_score(answer, reference, embeddings_model):
     # Average over all reference sentences
     return sum(sims) / len(sims)
 
+# --- Regex for numbers and years (FIXED year pattern: non-capturing group) ---
+NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
+YEAR_PATTERN = re.compile(r"\b(?:19|20)\d{2}\b")
+
+# Load NER model once (you already have en_core_web_sm installed)
+nlp = en_core_web_sm.load()
+
+_HONORIFICS = {"mr", "mrs", "ms", "shri", "smt", "dr", "sir", "madam", "sh.", "sri"}
+
+def _norm_person(text: str) -> str:
+    x = re.sub(r"[^\w\s]", " ", text.lower()).strip()
+    parts = [p for p in x.split() if p not in _HONORIFICS]
+    return " ".join(parts)
+
+def _ents_by_label(text: str) -> dict[str, set[str]]:
+    doc = nlp(text)
+    out: dict[str, set[str]] = {}
+    for ent in doc.ents:
+        if ent.label_ == "PERSON":
+            val = _norm_person(ent.text)
+        else:
+            val = ent.text.lower().strip()
+        out.setdefault(ent.label_, set()).add(val)
+    # fallback: try regex for capitalized names if PERSON empty
+    if "PERSON" not in out:
+        names = re.findall(r"\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)+\b", text)
+        if names:
+            out["PERSON"] = {_norm_person(n) for n in names}
+    return out
+
+def factual_consistency_score(answer: str, reference: str) -> float:
+    """
+    Factual consistency based on entity & number/date overlap.
+    Extra facts in the answer do NOT penalize; contradiction occurs only
+    when a critical entity present in the reference has NO overlap in the answer.
+    Returns 0..1
+    """
+    if not answer.strip() or not reference.strip():
+        return 0.0
+
+    ans_ents = _ents_by_label(answer)
+    ref_ents = _ents_by_label(reference)
+
+    # Helper: score 1 if there is overlap for that label, 0 if ref has but ans lacks all
+    def overlap_score(label: str) -> float:
+        if label not in ref_ents:
+            return 1.0  # nothing to check
+        if label not in ans_ents:
+            return 0.0  # missing all referenced entities of this type
+        return 1.0 if (ref_ents[label] & ans_ents[label]) else 0.0
+
+    # Critical entities: PERSON should strongly influence score; GPE moderate
+    person_score = overlap_score("PERSON")
+    gpe_score    = overlap_score("GPE")   # e.g., India
+
+    # DATE via NER: allow extra dates; require at least one overlap if ref has any
+    date_score   = overlap_score("DATE")
+
+    # Raw numbers & years: require at least one common value if ref has any
+    ans_nums  = set(NUMBER_PATTERN.findall(answer))
+    ref_nums  = set(NUMBER_PATTERN.findall(reference))
+    num_score = 1.0 if not ref_nums else (1.0 if (ans_nums & ref_nums) else 0.0)
+
+    ans_years  = set(YEAR_PATTERN.findall(answer))
+    ref_years  = set(YEAR_PATTERN.findall(reference))
+    year_score = 1.0 if not ref_years else (1.0 if (ans_years & ref_years) else 0.0)
+
+    # Weights: emphasize PERSON; keep others supportive
+    final = (
+        0.55 * person_score +
+        0.15 * date_score +
+        0.10 * year_score +
+        0.10 * gpe_score +
+        0.10 * num_score
+    )
+    return round(float(final), 2)
+
+
 #==================================================================
 #================METRICS DEF FOR RAG LLM RESPONSES=================
 #==================================================================
@@ -156,18 +237,8 @@ def completeness_RAG(answer, top_k_contexts, embeddings_model):
     return float(score)
 
 
-
-
-
-
-
-
-
-
-
-
 #==================================================================
-#================Evaluation method=================================
+#================Evaluation method with RAGAS======================
 #==================================================================
 def evaluate_with_retries_batch(dataset, embeddings, metrics, max_retries=3, delay=5):
     retries = 0

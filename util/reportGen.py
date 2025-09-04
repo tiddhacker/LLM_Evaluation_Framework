@@ -326,6 +326,7 @@ def html_report_LLM_evaluator(final_df):
         "hallucination": "Hallucination",
         "completeness": "Completeness",
         "toxicity_score": "Toxicity Score",
+        "factual_consistency": "Factual Consistency"
     })
 
     # Replace {} or [] with blank
@@ -340,7 +341,10 @@ def html_report_LLM_evaluator(final_df):
             v = float(val)
             if col == "Semantic Similarity":
                 if v < 0.4: return 'class="poor"'
-                elif v < 0.7: return 'class="medium"'
+                elif v < 0.75: return 'class="medium"'
+            elif col == "Factual Consistency":
+                if v < 0.4: return 'class="poor"'
+                elif v < 0.85: return 'class="medium"'
             elif col == "Hallucination":
                 if v > 0.6: return 'class="poor"'
                 elif v > 0.3: return 'class="medium"'
@@ -473,7 +477,8 @@ def html_report_LLM_evaluator(final_df):
         <div class="legend">
         <h2>Legend:</h2>
         <ul>
-            <li><b>Semantic Similarity:</b> Measures closeness in meaning to reference. Higher is better (0.7+ good).</li>
+            <li><b>Semantic Similarity:</b> Measures closeness in meaning to reference. Higher is better (0.8+ good).</li>
+            <li><b>Factual Consistency:</b> Measures the factual data in answers comparing it to reference. Higher is better (0.85+ good).</li>
             <li><b>Hallucination:</b> Checks if answer invents unsupported info. Lower is better (&lt;0.3 good).</li>
             <li><b>Completeness:</b> Measures how fully answer covers reference. Higher is better (0.7+ good).</li>
             <li><b>Toxicity Score:</b> Detects offensive/unsafe language. Lower is better (&lt;0.2 safe).</li>

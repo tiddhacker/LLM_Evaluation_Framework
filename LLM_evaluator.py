@@ -11,7 +11,7 @@ from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from util.evaluation_metrics import embedding_hallucination, semantic_completeness_score, toxicity_score, \
-    sensitive_data_score, detect_pii, evaluate_with_retries_batch
+    sensitive_data_score, detect_pii, evaluate_with_retries_batch, factual_consistency_score
 from util.reportGen import html_report_LLM_evaluator
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -75,12 +75,12 @@ def test_ragas_evaluation_batch():
         # --- Metrics block ---
         metrics_df = pd.DataFrame({
             "semantic_similarity": results_df["semantic_similarity"].round(2),
+            "factual_consistency": [factual_consistency_score(ans, ref) for ans, ref in zip(answers, references)],
             "hallucination": [round(x, 2) for x in halluc_scores],
             "completeness": [round(x, 2) for x in completeness_score],
             "toxicity_score": [round(float(toxicity_score(ans)), 2) for ans in answers],
             "sensitive_data_score": [round(sensitive_data_score(ans), 2) for ans in answers],
-            "sensitive_data_detail": [detect_pii(ans) for ans in answers]
-        })
+            "sensitive_data_detail": [detect_pii(ans) for ans in answers]        })
 
         return base_df, metrics_df
 
