@@ -4,8 +4,6 @@ import nltk
 from dotenv import load_dotenv
 from detoxify import Detoxify
 from nltk import word_tokenize
-import spacy
-import os
 import en_core_web_sm
 
 from ragas import evaluate
@@ -112,15 +110,32 @@ def factual_consistency_score(answer: str, reference: str) -> float:
 #==================================================================
 
 # Hallucination (answer vs reference)
-def embedding_hallucination(answer, reference, embeddings_model):
+# def embedding_hallucination(answer, reference, embeddings_model):
+#     answer_emb = embeddings_model.embed_documents([answer])[0]
+#     reference_emb = embeddings_model.embed_documents([reference])[0]
+#     sim = cosine_similarity([answer_emb], [reference_emb])[0][0]
+#     halluc_score = 1 - sim
+#     return halluc_score
+
+def embedding_hallucination(answer, reference, embeddings_model, weight_embed=0.7, weight_ent=0.3):
+    # Embedding similarity
     answer_emb = embeddings_model.embed_documents([answer])[0]
-    reference_emb = embeddings_model.embed_documents([reference])[0]
-    sim = cosine_similarity([answer_emb], [reference_emb])[0][0]
-    halluc_score = 1 - sim
-    return halluc_score
+    ref_emb = embeddings_model.embed_documents([reference])[0]
+    sim = cosine_similarity([answer_emb], [ref_emb])[0][0]
+    halluc_embed = 1 - sim
 
+    # Entity mismatch penalty
+    ans_ents = _ents_by_label(answer)
+    ref_ents = _ents_by_label(reference)
+    ent_overlap = sum(len(ans_ents.get(lbl, set()) & ref_ents.get(lbl, set()))
+                      for lbl in ref_ents)
+    ent_total = sum(len(v) for v in ref_ents.values())
+    halluc_ent = 1 - (ent_overlap / ent_total if ent_total else 1.0)
 
-def semantic_completeness_score(answer, reference, embeddings_model):
+    # Weighted combination
+    return round(weight_embed * halluc_embed + weight_ent * halluc_ent, 2)
+
+def completeness_score(answer, reference, embeddings_model):
     """
     Computes a completeness score (0-1) based on semantic similarity of answer vs reference.
     """
@@ -144,6 +159,26 @@ def semantic_completeness_score(answer, reference, embeddings_model):
 
     # Average over all reference sentences
     return sum(sims) / len(sims)
+
+def semantic_completeness_score(answer, reference, embeddings_model, weight_embed=0.6, weight_ent=0.4):
+    # Embedding-based completeness
+    base_score = completeness_score(answer, reference, embeddings_model)
+
+    # Entity coverage
+    ans_ents = _ents_by_label(answer)
+    ref_ents = _ents_by_label(reference)
+
+    entity_coverages = []
+    for label, ref_vals in ref_ents.items():
+        if not ref_vals:
+            continue
+        ans_vals = ans_ents.get(label, set())
+        coverage = len(ref_vals & ans_vals) / len(ref_vals)
+        entity_coverages.append(coverage)
+
+    ent_score = sum(entity_coverages) / len(entity_coverages) if entity_coverages else 1.0
+
+    return round(weight_embed * base_score + weight_ent * ent_score, 2)
 
 # --- Regex for numbers and years (FIXED year pattern: non-capturing group) ---
 NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
